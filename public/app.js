@@ -1,0 +1,868 @@
+// Estado da aplicação
+let network = null;
+let nodes = new vis.DataSet();
+let edges = new vis.DataSet();
+let sessionRecords = {}; // Armazena os registros brutos indexados por ID do acervo
+
+// Configuração de cores para os nós
+const COLORS = {
+    book: {
+        border: '#0ea5e9',
+        background: '#0284c7',
+        highlight: { border: '#38bdf8', background: '#0ea5e9' }
+    },
+    author: {
+        border: '#f43f5e',
+        background: '#e11d48',
+        highlight: { border: '#fda4af', background: '#f43f5e' }
+    },
+    subject: {
+        border: '#a855f7',
+        background: '#9333ea',
+        highlight: { border: '#c084fc', background: '#a855f7' }
+    },
+    publisher: {
+        border: '#10b981',
+        background: '#059669',
+        highlight: { border: '#34d399', background: '#10b981' }
+    }
+};
+
+// SVG de capa padrão embutido
+const DEFAULT_COVER_SVG = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='170' viewBox='0 0 120 170'><rect width='120' height='170' fill='%231e293b' rx='8'/><rect x='10' y='10' width='100' height='150' fill='none' stroke='%23334155' stroke-width='2' stroke-dasharray='4' rx='4'/><text x='50%' y='45%' dominant-baseline='middle' text-anchor='middle' fill='%2364748b' font-family='sans-serif' font-size='28'>📖</text><text x='50%' y='70%' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='sans-serif' font-size='10' font-weight='bold'>SEM CAPA</text></svg>`;
+
+// Inicialização do Grafo
+function initNetwork() {
+    const container = document.getElementById('network-canvas');
+    const data = { nodes, edges };
+    
+    const options = {
+        nodes: {
+            brokenImage: DEFAULT_COVER_SVG,
+            font: {
+                color: '#f8fafc',
+                size: 14,
+                face: 'Outfit',
+                strokeWidth: 2,
+                strokeColor: '#0f172a'
+            },
+            shadow: {
+                enabled: true,
+                color: 'rgba(0,0,0,0.4)',
+                size: 8,
+                x: 0,
+                y: 4
+            }
+        },
+        edges: {
+            color: {
+                color: 'rgba(148, 163, 184, 0.3)',
+                highlight: '#38bdf8',
+                hover: '#38bdf8'
+            },
+            width: 1.5,
+            smooth: {
+                type: 'continuous',
+                forceDirection: 'none'
+            }
+        },
+        physics: {
+            enabled: true,
+            barnesHut: {
+                gravitationalConstant: -3000,
+                centralGravity: 0.3,
+                springLength: 150,
+                springConstant: 0.04,
+                damping: 0.09,
+                avoidOverlap: 1
+            },
+            stabilization: {
+                enabled: true,
+                iterations: 1000,
+                updateInterval: 50,
+                onlyDynamicEdges: false,
+                fit: true
+            }
+        },
+        interaction: {
+            hover: true,
+            tooltipDelay: 200,
+            hideEdgesOnDrag: false
+        }
+    };
+    
+    network = new vis.Network(container, data, options);
+    
+    // Evento de clique em um nó
+    network.on('click', function (params) {
+        if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            showNodeDetails(nodeId);
+        } else {
+            hideDetailsPanel();
+        }
+    });
+
+    // Evento de duplo clique para expandir o nó (buscar conexões)
+    network.on('doubleClick', async function (params) {
+        if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            const node = nodes.get(nodeId);
+            if (!node) return;
+            
+            if (node.type === 'book') {
+                // Ao dar duplo clique no livro, se ele não estiver totalmente enriquecido, 
+                // buscamos seus detalhes completos e o atualizamos (o que expande assuntos, etc.)
+                const acervoId = node.acervoId;
+                const record = sessionRecords[acervoId];
+                if (record && (record.publisher === 'Não informada' || !record.isbn)) {
+                    const metadata = await fetchAcervoMetadata(acervoId);
+                    if (metadata) {
+                        addRecordToGraph(acervoId, metadata);
+                    }
+                }
+            } else if (node.type === 'subject' || node.type === 'author') {
+                // Ao dar duplo clique no assunto ou autor, apenas abrimos a busca lateral na BU
+                if (node.authorityId) {
+                    searchConnectionOnBU(node.name, node.authorityId, node.type);
+                } else {
+                    const typeLabel = node.type === 'subject' ? 'assunto' : 'autor';
+                    showStatus(`Este ${typeLabel} não possui código de autoridade para busca.`, true);
+                    setTimeout(hideStatus, 2000);
+                }
+            }
+        }
+    });
+}
+
+// Analisa a resposta JSON nativa do Pergamum e extrai os campos MARC relevantes
+function parsePergamumJSON(data) {
+    const fields = {};
+    if (data && data.campos) {
+        data.campos.forEach(c => {
+            fields[c.ordem] = c;
+        });
+    }
+
+    // 1. Extração do Título (MARC 245)
+    let title = 'Sem Título';
+    const titleField = fields['245'];
+    if (titleField && titleField.detalhes && titleField.detalhes.length > 0) {
+        const det = titleField.detalhes[0];
+        const idx = det._secao.indexOf('a');
+        if (idx !== -1) {
+            title = det.descricao[idx];
+        }
+    }
+
+    // 2. Extração dos Autores (MARC 100 - Principal, 700 - Secundários)
+    const authors = [];
+    const mainAuthorField = fields['100'];
+    if (mainAuthorField && mainAuthorField.detalhes) {
+        mainAuthorField.detalhes.forEach(det => {
+            const idx = det._secao.indexOf('a');
+            if (idx !== -1) {
+                const name = cleanString(det.descricao[idx]);
+                const authCode = det.cod_autoridade && det.cod_autoridade.length > 0 ? (det.cod_autoridade[idx] || det.cod_autoridade[0] || '') : '';
+                if (name && !authors.some(a => a.name === name)) {
+                    authors.push({ name: name, authorityId: authCode });
+                }
+            }
+        });
+    }
+    const addedAuthorField = fields['700'];
+    if (addedAuthorField && addedAuthorField.detalhes) {
+        addedAuthorField.detalhes.forEach(det => {
+            const idx = det._secao.indexOf('a');
+            if (idx !== -1) {
+                const name = cleanString(det.descricao[idx]);
+                const authCode = det.cod_autoridade && det.cod_autoridade.length > 0 ? (det.cod_autoridade[idx] || det.cod_autoridade[0] || '') : '';
+                if (name && !authors.some(a => a.name === name)) {
+                    authors.push({ name: name, authorityId: authCode });
+                }
+            }
+        });
+    }
+
+    // 3. Extração dos Assuntos (MARC 650)
+    const subjects = [];
+    const subjectField = fields['650'];
+    if (subjectField && subjectField.detalhes) {
+        subjectField.detalhes.forEach(det => {
+            const idx = det._secao.indexOf('a');
+            if (idx !== -1) {
+                const sub = cleanString(det.descricao[idx]);
+                const authCode = det.cod_autoridade && det.cod_autoridade.length > 0 ? (det.cod_autoridade[idx] || det.cod_autoridade[0] || '') : '';
+                if (sub) {
+                    if (!subjects.some(s => s.name === sub)) {
+                        subjects.push({ name: sub, authorityId: authCode });
+                    }
+                }
+            }
+        });
+    }
+
+    // 4. Extração da Editora e Ano (MARC 260)
+    let publisher = 'Não informada';
+    let year = '';
+    const pubField = fields['260'];
+    if (pubField && pubField.detalhes && pubField.detalhes.length > 0) {
+        const det = pubField.detalhes[0];
+        const pubIdx = det._secao.indexOf('b');
+        if (pubIdx !== -1) {
+            publisher = cleanString(det.descricao[pubIdx]);
+        }
+        const yearIdx = det._secao.indexOf('c');
+        if (yearIdx !== -1) {
+            // Extrai somente dígitos do ano (ex: "c2009" ou "2009." -> "2009")
+            const match = det.descricao[yearIdx].match(/\d{4}/);
+            year = match ? match[0] : cleanString(det.descricao[yearIdx]);
+        }
+    }
+
+    // 5. Extração do ISBN (MARC 20)
+    let isbn = '';
+    const isbnField = fields['20'];
+    if (isbnField && isbnField.detalhes) {
+        for (let det of isbnField.detalhes) {
+            const idx = det._secao.indexOf('a');
+            if (idx !== -1) {
+                const match = det.descricao[idx].match(/\d{10,13}/);
+                if (match) {
+                    isbn = match[0];
+                    break; // Pega o primeiro ISBN válido
+                }
+            }
+        }
+    }
+
+    return { title, authors, subjects, publisher, year, isbn };
+}
+
+// Limpa caracteres especiais comuns de dados MARC (como pontuações ao final)
+function cleanString(str) {
+    if (!str) return '';
+    return str.trim()
+              .replace(/[\s\.,;:/\-]+$/, '') // Remove pontuação terminal
+              .trim();
+}
+
+// Busca os metadados do acervo no servidor local (que faz o proxy)
+async function fetchAcervoMetadata(acervoId) {
+    showStatus('Buscando dados no catálogo...', false);
+    try {
+        const response = await fetch(`/api/acervo/${acervoId}`);
+        if (!response.ok) {
+            throw new Error(`Código de erro HTTP: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        // Verifica se a resposta contém dados válidos
+        if (!data || !data.campos || data.campos.length === 0) {
+            throw new Error('Nenhum registro encontrado para este código de acervo.');
+        }
+        
+        hideStatus();
+        return parsePergamumJSON(data);
+    } catch (error) {
+        console.error(error);
+        showStatus(`Erro: ${error.message}`, true);
+        return null;
+    }
+}
+
+// Adiciona um livro e suas conexões ao Grafo
+function addRecordToGraph(acervoId, metadata) {
+    const bookNodeId = `book_${acervoId}`;
+    
+    // Armazena no estado da sessão
+    sessionRecords[acervoId] = { id: acervoId, ...metadata };
+
+    // Determina a imagem da capa (usando o serviço oficial de capas da BU se houver ISBN)
+    let coverUrl = DEFAULT_COVER_SVG;
+    let shape = 'box';
+    if (metadata.isbn) {
+        // Usamos o link do Coce capas.bu.ufsc.br
+        coverUrl = `https://capas.bu.ufsc.br/cover?id=${metadata.isbn}&provider=gb,ol`;
+        shape = 'circularImage';
+    }
+
+    // 1. Adiciona ou atualiza o nó do Livro
+    const bookNode = {
+        id: bookNodeId,
+        label: breakText(metadata.title, 20),
+        shape: shape,
+        image: coverUrl,
+        size: 30,
+        color: COLORS.book,
+        borderWidth: 3,
+        type: 'book',
+        acervoId: acervoId,
+        font: { size: 14, bold: true }
+    };
+
+    if (nodes.get(bookNodeId)) {
+        nodes.update(bookNode);
+    } else {
+        nodes.add(bookNode);
+    }
+
+    // 2. Processa Autores
+    metadata.authors.forEach(authorObj => {
+        const author = authorObj.name;
+        const authId = authorObj.authorityId;
+        const authorNodeId = `author_${author.toLowerCase().replace(/\s+/g, '_')}`;
+        
+        // Adiciona nó do Autor se não existir
+        if (!nodes.get(authorNodeId)) {
+            nodes.add({
+                id: authorNodeId,
+                label: author,
+                shape: 'dot',
+                size: 15,
+                color: COLORS.author,
+                type: 'author',
+                name: author,
+                authorityId: authId
+            });
+        }
+
+        // Conecta o Livro ao Autor
+        const edgeId = `edge_${bookNodeId}_${authorNodeId}`;
+        if (!edges.get(edgeId)) {
+            edges.add({ id: edgeId, from: bookNodeId, to: authorNodeId });
+        }
+    });
+
+    // 3. Processa Assuntos
+    metadata.subjects.forEach(subjectObj => {
+        const subject = subjectObj.name;
+        const authId = subjectObj.authorityId;
+        const subjectNodeId = `subject_${subject.toLowerCase().replace(/\s+/g, '_')}`;
+        
+        // Adiciona nó do Assunto se não existir
+        if (!nodes.get(subjectNodeId)) {
+            nodes.add({
+                id: subjectNodeId,
+                label: subject,
+                shape: 'dot',
+                size: 20, // Assuntos são maiores
+                color: COLORS.subject,
+                type: 'subject',
+                name: subject,
+                authorityId: authId
+            });
+        }
+
+        // Conecta o Livro ao Assunto
+        const edgeId = `edge_${bookNodeId}_${subjectNodeId}`;
+        if (!edges.get(edgeId)) {
+            edges.add({ id: edgeId, from: bookNodeId, to: subjectNodeId });
+        }
+    });
+
+    // 4. Processa Editora
+    if (metadata.publisher && metadata.publisher !== 'Não informada') {
+        const pub = metadata.publisher;
+        const pubNodeId = `publisher_${pub.toLowerCase().replace(/\s+/g, '_')}`;
+        
+        // Adiciona nó da Editora se não existir
+        if (!nodes.get(pubNodeId)) {
+            nodes.add({
+                id: pubNodeId,
+                label: pub,
+                shape: 'dot',
+                size: 12,
+                color: COLORS.publisher,
+                type: 'publisher',
+                name: pub
+            });
+        }
+
+        // Conecta o Livro à Editora
+        const edgeId = `edge_${bookNodeId}_${pubNodeId}`;
+        if (!edges.get(edgeId)) {
+            edges.add({ id: edgeId, from: bookNodeId, to: pubNodeId });
+        }
+    }
+
+    // Foca a câmera no novo livro adicionado
+    setTimeout(() => {
+        network.focus(bookNodeId, {
+            scale: 0.9,
+            animation: {
+                duration: 1000,
+                easingFunction: 'easeInOutQuad'
+            }
+        });
+        showNodeDetails(bookNodeId);
+    }, 200);
+}
+
+// Quebra textos longos em várias linhas para os labels dos nós
+function breakText(text, maxChars) {
+    if (text.length <= maxChars) return text;
+    const words = text.split(/\s+/);
+    let lines = [];
+    let currentLine = '';
+    
+    words.forEach(word => {
+        if ((currentLine + ' ' + word).trim().length <= maxChars) {
+            currentLine = (currentLine + ' ' + word).trim();
+        } else {
+            if (currentLine) lines.push(currentLine);
+            currentLine = word;
+        }
+    });
+    if (currentLine) lines.push(currentLine);
+    
+    return lines.join('\n');
+}
+
+// Exibe informações do nó no painel lateral
+function showNodeDetails(nodeId) {
+    const node = nodes.get(nodeId);
+    if (!node) return;
+
+    const panel = document.getElementById('details-panel');
+    const bookSec = document.getElementById('book-details');
+    const genericSec = document.getElementById('generic-details');
+    
+    panel.classList.remove('hidden');
+
+    if (node.type === 'book') {
+        // Exibe seção do Livro
+        bookSec.classList.remove('hidden');
+        genericSec.classList.add('hidden');
+        
+        document.getElementById('detail-type-title').innerText = 'Ficha do Livro';
+        
+        let record = sessionRecords[node.acervoId];
+        
+        // Se temos apenas dados básicos do livro, faz o fetch completo em segundo plano para enriquecer!
+        if (record && (record.publisher === 'Não informada' || !record.isbn)) {
+            fetchAcervoMetadata(node.acervoId).then(fullMeta => {
+                if (fullMeta) {
+                    sessionRecords[node.acervoId] = { id: node.acervoId, ...fullMeta };
+                    
+                    // Atualiza a barra lateral caso o nó ainda seja o selecionado
+                    const activeSelection = network.getSelectedNodes();
+                    if (activeSelection.length > 0 && activeSelection[0] === nodeId) {
+                        document.getElementById('detail-isbn').innerText = fullMeta.isbn || 'Não consta';
+                        document.getElementById('detail-publisher').innerText = fullMeta.publisher || 'Não informada';
+                        document.getElementById('detail-year').innerText = fullMeta.year || 'Não informado';
+                        
+                        const coverImg = document.getElementById('detail-cover');
+                        if (fullMeta.isbn) {
+                            coverImg.src = `https://capas.bu.ufsc.br/cover?id=${fullMeta.isbn}&provider=gb,ol`;
+                        }
+                    }
+                    
+                    // Se o livro possui ISBN agora, atualiza o nó no grafo para usar a capa circular
+                    if (fullMeta.isbn) {
+                        nodes.update({
+                            id: nodeId,
+                            shape: 'circularImage',
+                            image: `https://capas.bu.ufsc.br/cover?id=${fullMeta.isbn}&provider=gb,ol`
+                        });
+                    }
+                }
+            });
+        }
+        
+        if (record) {
+            document.getElementById('detail-title').innerText = record.title;
+            document.getElementById('detail-acervo-id').innerText = record.id;
+            document.getElementById('detail-isbn').innerText = record.isbn || 'Carregando...';
+            document.getElementById('detail-publisher').innerText = record.publisher || 'Carregando...';
+            document.getElementById('detail-year').innerText = record.year || 'Carregando...';
+            
+            const coverImg = document.getElementById('detail-cover');
+            if (record.isbn) {
+                coverImg.src = `https://capas.bu.ufsc.br/cover?id=${record.isbn}&provider=gb,ol`;
+            } else {
+                coverImg.src = DEFAULT_COVER_SVG;
+            }
+        }
+    } else {
+        // Exibe seção de Outro Nó (Autor, Assunto ou Editora)
+        bookSec.classList.add('hidden');
+        genericSec.classList.remove('hidden');
+        
+        document.getElementById('detail-type-title').innerText = 'Ficha de Conexão';
+        
+        // Define o tipo
+        const badge = document.getElementById('detail-badge-type');
+        badge.innerText = node.type;
+        badge.className = `detail-badge ${node.type}`;
+        
+        document.getElementById('detail-name').innerText = node.name;
+        
+        // Lógica específica para Assuntos e Autores (com botão de busca na BU)
+        const searchBox = document.getElementById('subject-search-box');
+        const resultsWrapper = document.getElementById('bu-search-results-wrapper');
+        const searchBtn = document.getElementById('btn-search-bu');
+        
+        if ((node.type === 'subject' || node.type === 'author') && node.authorityId) {
+            searchBox.classList.remove('hidden');
+            resultsWrapper.classList.add('hidden'); // Oculta até que o usuário clique para buscar
+            
+            if (node.type === 'subject') {
+                searchBtn.innerText = '🔍 Buscar acervos deste assunto na BU';
+            } else {
+                searchBtn.innerText = '🔍 Buscar acervos deste autor na BU';
+            }
+            
+            searchBtn.onclick = () => {
+                searchConnectionOnBU(node.name, node.authorityId, node.type);
+            };
+        } else {
+            searchBox.classList.add('hidden');
+            resultsWrapper.classList.add('hidden');
+        }
+        
+        // Encontra livros conectados no grafo atual
+        const list = document.getElementById('connected-books-list');
+        list.innerHTML = '';
+        
+        // Percorre todas as arestas conectadas a este nó
+        const connectedEdges = edges.get({
+            filter: function (item) {
+                return item.from === nodeId || item.to === nodeId;
+            }
+        });
+        
+        connectedEdges.forEach(edge => {
+            const targetId = edge.from === nodeId ? edge.to : edge.from;
+            const targetNode = nodes.get(targetId);
+            
+            if (targetNode && targetNode.type === 'book') {
+                const li = document.createElement('li');
+                const rawRecord = sessionRecords[targetNode.acervoId];
+                li.innerText = rawRecord ? rawRecord.title : targetNode.label.replace('\n', ' ');
+                li.onclick = () => {
+                    network.focus(targetId, { scale: 1.0, animation: { duration: 500 } });
+                    network.selectNodes([targetId]);
+                    showNodeDetails(targetId);
+                };
+                list.appendChild(li);
+            }
+        });
+    }
+}
+// Busca livros de um determinado assunto ou autor na BU UFSC através da API de busca
+async function searchConnectionOnBU(name, authorityId, type) {
+    const list = document.getElementById('bu-books-list');
+    list.innerHTML = '<li style="cursor: default; background: transparent; border: none;">Buscando na base da BU UFSC...</li>';
+    document.getElementById('bu-search-results-wrapper').classList.remove('hidden');
+
+    try {
+        const coluna = type === 'author' ? 'INDICE_3' : 'INDICE_2';
+        const response = await fetch(`/api/pesquisa?termo=${encodeURIComponent(name)}&indice=${authorityId}&coluna=${coluna}`);
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        list.innerHTML = '';
+        
+        if (data && Array.isArray(data) && data.length > 0) {
+            data.forEach(item => {
+                const acervoId = item.cod_acervo;
+                const title = item.descricao || item.obra;
+                
+                if (acervoId) {
+                    const li = document.createElement('li');
+                    li.style.display = 'flex';
+                    li.style.justifyContent = 'space-between';
+                    li.style.alignItems = 'center';
+                    li.style.gap = '10px';
+                    
+                    const titleSpan = document.createElement('span');
+                    titleSpan.innerText = title;
+                    titleSpan.style.flexGrow = '1';
+                    titleSpan.style.wordBreak = 'break-word';
+                    
+                    const addIcon = document.createElement('span');
+                    addIcon.className = 'bu-add-icon';
+                    addIcon.innerText = '＋';
+                    addIcon.title = 'Adicionar este acervo ao grafo';
+                    
+                    li.appendChild(titleSpan);
+                    li.appendChild(addIcon);
+                    
+                    li.onclick = async (e) => {
+                        e.stopPropagation();
+                        const bookId = `book_${acervoId}`;
+                        if (nodes.get(bookId)) {
+                            // Já está no grafo, apenas foca
+                            network.focus(bookId, { scale: 1.0, animation: { duration: 500 } });
+                            network.selectNodes([bookId]);
+                            showNodeDetails(bookId);
+                        } else {
+                            // Busca metadados completos do acervo e adiciona ao grafo
+                            const metadata = await fetchAcervoMetadata(acervoId);
+                            if (metadata) {
+                                addRecordToGraph(acervoId, metadata);
+                            }
+                        }
+                    };
+                    
+                    list.appendChild(li);
+                }
+            });
+        } else {
+            const typeLabel = type === 'author' ? 'autor' : 'assunto';
+            list.innerHTML = `<li style="cursor: default; background: transparent; border: none;">Nenhum livro encontrado para este ${typeLabel} na BU.</li>`;
+        }
+    } catch (err) {
+        console.error(err);
+        list.innerHTML = `<li style="color: #ef4444; cursor: default; background: transparent; border: none;">Erro ao buscar: ${err.message}</li>`;
+    }
+}
+
+// Expande o assunto diretamente no grafo, buscando livros relacionados na BU UFSC
+// e adicionando-os de forma conectada, junto com seus coautores e outros assuntos.
+async function expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
+    showStatus('Buscando e desenhando conexões da BU...', false);
+    try {
+        const response = await fetch(`/api/pesquisa?termo=${encodeURIComponent(subjectName)}&indice=${authorityId}`);
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        const data = await response.json();
+        hideStatus();
+        
+        if (data && Array.isArray(data) && data.length > 0) {
+            let addedCount = 0;
+            data.forEach(item => {
+                const acervoId = item.cod_acervo;
+                if (!acervoId) return;
+                
+                addedCount++;
+                const title = cleanString(item.obra || item.descricao);
+                const bookNodeId = `book_${acervoId}`;
+                
+                // 1. Adiciona nó do livro (inicialmente como box)
+                if (!nodes.get(bookNodeId)) {
+                    nodes.add({
+                        id: bookNodeId,
+                        label: breakText(title, 20),
+                        shape: 'box',
+                        color: COLORS.book,
+                        borderWidth: 3,
+                        type: 'book',
+                        acervoId: acervoId,
+                        font: { size: 14, bold: true }
+                    });
+                }
+                
+                // Cria ou complementa metadados na sessão (caso o usuário queira clicar nele para ver a ficha)
+                if (!sessionRecords[acervoId]) {
+                    sessionRecords[acervoId] = {
+                        id: acervoId,
+                        title: title,
+                        authors: [],
+                        subjects: [],
+                        publisher: 'Não informada',
+                        year: item.ano_publicacao || '',
+                        isbn: ''
+                    };
+                }
+                
+                // Conecta o livro ao assunto de origem
+                const mainEdgeId = `edge_${bookNodeId}_${subjectNodeId}`;
+                if (!edges.get(mainEdgeId)) {
+                    edges.add({ id: mainEdgeId, from: bookNodeId, to: subjectNodeId });
+                }
+                
+                // 2. Adiciona autores deste acervo retornados na busca
+                if (item.dados_adicionais && item.dados_adicionais.A) {
+                    item.dados_adicionais.A.forEach(a => {
+                        const authorName = cleanString(a.descricao);
+                        const authorId = a.codigo;
+                        const authorNodeId = `author_${authorName.toLowerCase().replace(/\s+/g, '_')}`;
+                        
+                        if (!nodes.get(authorNodeId)) {
+                            nodes.add({
+                                id: authorNodeId,
+                                label: authorName,
+                                shape: 'dot',
+                                size: 15,
+                                color: COLORS.author,
+                                type: 'author',
+                                name: authorName,
+                                authorityId: authorId
+                            });
+                        }
+                        
+                        const edgeId = `edge_${bookNodeId}_${authorNodeId}`;
+                        if (!edges.get(edgeId)) {
+                            edges.add({ id: edgeId, from: bookNodeId, to: authorNodeId });
+                        }
+                        
+                        if (!sessionRecords[acervoId].authors.some(auth => auth.name === authorName)) {
+                            sessionRecords[acervoId].authors.push({ name: authorName, authorityId: authorId });
+                        }
+                    });
+                }
+                
+                // 3. Adiciona outros assuntos deste acervo retornados na busca
+                if (item.dados_adicionais && item.dados_adicionais.S) {
+                    item.dados_adicionais.S.forEach(s => {
+                        const sName = cleanString(s.descricao);
+                        const sId = s.codigo;
+                        const sNodeId = `subject_${sName.toLowerCase().replace(/\s+/g, '_')}`;
+                        
+                        if (!nodes.get(sNodeId)) {
+                            nodes.add({
+                                id: sNodeId,
+                                label: sName,
+                                shape: 'dot',
+                                size: 20,
+                                color: COLORS.subject,
+                                type: 'subject',
+                                name: sName,
+                                authorityId: sId
+                            });
+                        }
+                        
+                        const edgeId = `edge_${bookNodeId}_${sNodeId}`;
+                        if (!edges.get(edgeId)) {
+                            edges.add({ id: edgeId, from: bookNodeId, to: sNodeId });
+                        }
+                        
+                        if (!sessionRecords[acervoId].subjects.some(sub => sub.name === sName)) {
+                            sessionRecords[acervoId].subjects.push({ name: sName, authorityId: sId });
+                        }
+                    });
+                }
+            });
+            
+            showStatus(`Grafo expandido com ${addedCount} novos livros da BU!`, false);
+            setTimeout(hideStatus, 2500);
+        } else {
+            showStatus('Nenhum acervo retornado pela busca da BU.', true);
+            setTimeout(hideStatus, 3000);
+        }
+    } catch (err) {
+        console.error(err);
+        showStatus(`Erro na expansão: ${err.message}`, true);
+        setTimeout(hideStatus, 3000);
+    }
+}
+
+function hideDetailsPanel() {
+    document.getElementById('details-panel').classList.add('hidden');
+}
+
+// Controle de mensagens de status
+function showStatus(text, isError = false) {
+    const msg = document.getElementById('status-message');
+    const spinner = msg.querySelector('.spinner');
+    const textEl = msg.querySelector('.status-text');
+    
+    msg.classList.remove('hidden', 'error');
+    textEl.innerText = text;
+    
+    if (isError) {
+        msg.classList.add('error');
+        spinner.classList.add('hidden');
+    } else {
+        spinner.classList.remove('hidden');
+    }
+}
+
+function hideStatus() {
+    document.getElementById('status-message').classList.add('hidden');
+}
+
+// Listeners de UI
+document.getElementById('search-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const input = document.getElementById('acervo-id');
+    const acervoId = input.value.trim();
+    
+    if (!acervoId || !/^\d+$/.test(acervoId)) {
+        showStatus('Por favor, digite um código de acervo numérico válido.', true);
+        return;
+    }
+    
+    const merge = document.getElementById('merge-graphs').checked;
+    
+    if (!merge) {
+        nodes.clear();
+        edges.clear();
+        sessionRecords = {};
+        hideDetailsPanel();
+    }
+    
+    // Verifica se o livro já existe no grafo (evita requisições repetidas)
+    if (nodes.get(`book_${acervoId}`)) {
+        showStatus('Este livro já está no grafo!', false);
+        setTimeout(hideStatus, 2000);
+        network.focus(`book_${acervoId}`, { scale: 1.0, animation: { duration: 500 } });
+        network.selectNodes([`book_${acervoId}`]);
+        showNodeDetails(`book_${acervoId}`);
+        input.value = '';
+        return;
+    }
+    
+    const metadata = await fetchAcervoMetadata(acervoId);
+    if (metadata) {
+        addRecordToGraph(acervoId, metadata);
+        input.value = '';
+    }
+});
+
+// Botão de Centralizar
+document.getElementById('btn-fit').onclick = () => {
+    network.fit({ animation: { duration: 500 } });
+};
+
+// Botão de Física
+const physicsBtn = document.getElementById('btn-physics');
+physicsBtn.onclick = () => {
+    const isPhysicsEnabled = network.physics.options.enabled;
+    network.setOptions({ physics: { enabled: !isPhysicsEnabled } });
+    
+    if (!isPhysicsEnabled) {
+        physicsBtn.classList.add('active');
+    } else {
+        physicsBtn.classList.remove('active');
+    }
+};
+
+// Botão de Limpar
+document.getElementById('btn-clear').onclick = () => {
+    if (confirm('Deseja limpar todo o grafo da sessão?')) {
+        nodes.clear();
+        edges.clear();
+        sessionRecords = {};
+        hideDetailsPanel();
+        hideStatus();
+    }
+};
+
+// Botão de Fechar Painel Lateral
+document.getElementById('btn-close-panel').onclick = hideDetailsPanel;
+
+// Botão de Exportar JSON
+document.getElementById('btn-export-json').onclick = () => {
+    if (Object.keys(sessionRecords).length === 0) {
+        alert('Nenhum dado para exportar ainda!');
+        return;
+    }
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sessionRecords, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `pergamum_grafo_sessao_${Date.now()}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+};
+
+// Inicialização da Página
+window.onload = () => {
+    initNetwork();
+};
