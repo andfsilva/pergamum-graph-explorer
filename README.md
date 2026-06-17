@@ -1,5 +1,7 @@
 # Pergamum Graph Explorer (BU UFSC)
 
+![Interface do Pergamum Graph Explorer](imagem.png)
+
 Um explorador visual e interativo de conexões para o acervo da Biblioteca Universitária da Universidade Federal de Santa Catarina (BU UFSC). Esta ferramenta permite carregar fichas bibliográficas e navegar pelas relações de **Autores**, **Assuntos** e **Editoras** por meio de um grafo de rede dinâmico.
 
 ---
