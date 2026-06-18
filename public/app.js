@@ -236,7 +236,19 @@ function parsePergamumJSON(data) {
         }
     }
 
-    return { title, authors, subjects, publisher, year, isbn };
+    // 6. Extração do link da capa (MARC 856)
+    let coverUrl = '';
+    const coverField = fields['856'];
+    if (coverField && coverField.detalhes) {
+        for (let det of coverField.detalhes) {
+            if (det.link_acesso && (det.link_acesso.includes('/covers/') || det.link_acesso.includes('capa'))) {
+                coverUrl = det.link_acesso;
+                break;
+            }
+        }
+    }
+
+    return { title, authors, subjects, publisher, year, isbn, coverUrl };
 }
 
 // Limpa caracteres especiais comuns de dados MARC (como pontuações ao final)
@@ -278,10 +290,13 @@ function addRecordToGraph(acervoId, metadata) {
     // Armazena no estado da sessão
     sessionRecords[acervoId] = { id: acervoId, ...metadata };
 
-    // Determina a imagem da capa (usando o serviço oficial de capas da BU se houver ISBN)
+    // Determina a imagem da capa (usando o link direto se houver ou o serviço oficial de capas como fallback)
     let coverUrl = DEFAULT_COVER_SVG;
     let shape = 'box';
-    if (metadata.isbn) {
+    if (metadata.coverUrl) {
+        coverUrl = metadata.coverUrl;
+        shape = 'circularImage';
+    } else if (metadata.isbn) {
         // Usamos o link do Coce capas.bu.ufsc.br
         coverUrl = `https://capas.bu.ufsc.br/cover?id=${metadata.isbn}&provider=gb,ol`;
         shape = 'circularImage';
@@ -453,17 +468,19 @@ function showNodeDetails(nodeId) {
                         document.getElementById('detail-year').innerText = fullMeta.year || 'Não informado';
                         
                         const coverImg = document.getElementById('detail-cover');
-                        if (fullMeta.isbn) {
+                        if (fullMeta.coverUrl) {
+                            coverImg.src = fullMeta.coverUrl;
+                        } else if (fullMeta.isbn) {
                             coverImg.src = `https://capas.bu.ufsc.br/cover?id=${fullMeta.isbn}&provider=gb,ol`;
                         }
                     }
                     
-                    // Se o livro possui ISBN agora, atualiza o nó no grafo para usar a capa circular
-                    if (fullMeta.isbn) {
+                    // Se o livro possui capa agora, atualiza o nó no grafo para usar a capa circular
+                    if (fullMeta.coverUrl || fullMeta.isbn) {
                         nodes.update({
                             id: nodeId,
                             shape: 'circularImage',
-                            image: `https://capas.bu.ufsc.br/cover?id=${fullMeta.isbn}&provider=gb,ol`
+                            image: fullMeta.coverUrl || `https://capas.bu.ufsc.br/cover?id=${fullMeta.isbn}&provider=gb,ol`
                         });
                     }
                 }
@@ -478,7 +495,9 @@ function showNodeDetails(nodeId) {
             document.getElementById('detail-year').innerText = record.year || 'Carregando...';
             
             const coverImg = document.getElementById('detail-cover');
-            if (record.isbn) {
+            if (record.coverUrl) {
+                coverImg.src = record.coverUrl;
+            } else if (record.isbn) {
                 coverImg.src = `https://capas.bu.ufsc.br/cover?id=${record.isbn}&provider=gb,ol`;
             } else {
                 coverImg.src = DEFAULT_COVER_SVG;
