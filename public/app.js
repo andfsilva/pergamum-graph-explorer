@@ -863,6 +863,17 @@ document.getElementById('btn-export-json').onclick = () => {
 };
 
 // Inicialização da Página
-window.onload = () => {
+window.onload = async () => {
     initNetwork();
+    
+    // Verifica se há um código de acervo na URL (ex: ?cod_acervo=286946)
+    const urlParams = new URLSearchParams(window.location.search);
+    const codAcervo = urlParams.get('cod_acervo');
+    if (codAcervo && /^\d+$/.test(codAcervo.trim())) {
+        const cleanedId = codAcervo.trim();
+        const metadata = await fetchAcervoMetadata(cleanedId);
+        if (metadata) {
+            addRecordToGraph(cleanedId, metadata);
+        }
+    }
 };
