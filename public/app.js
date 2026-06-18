@@ -275,7 +275,24 @@ async function fetchAcervoMetadata(acervoId) {
         }
         
         hideStatus();
-        return parsePergamumJSON(data);
+        const metadata = parsePergamumJSON(data);
+        
+        // Se não houver capa na tag 856, mas houver ISBN, busca dinamicamente em capas.bu.ufsc.br
+        if (!metadata.coverUrl && metadata.isbn) {
+            try {
+                const coverRes = await fetch(`https://capas.bu.ufsc.br/cover?id=${metadata.isbn}`);
+                if (coverRes.ok) {
+                    const coverData = await coverRes.json();
+                    if (coverData && coverData[metadata.isbn]) {
+                        metadata.coverUrl = coverData[metadata.isbn];
+                    }
+                }
+            } catch (e) {
+                console.warn('Erro ao carregar capa dinâmica da BU:', e);
+            }
+        }
+        
+        return metadata;
     } catch (error) {
         console.error(error);
         showStatus(`Erro: ${error.message}`, true);
