@@ -17,7 +17,7 @@
         <!-- Painel de Controle Principal (Glassmorphism) -->
         <header class="main-header">
             <div class="logo-container">
-                <span class="logo-icon">🕸️</span>
+                <img src="https://portal.bu.ufsc.br/files/2020/07/cropped-BU_logo-2.png" alt="Logo BU UFSC" class="logo-img">
                 <div class="logo-text">
                     <h1>Pergamum Graph</h1>
                     <p>Biblioteca Universitária UFSC</p>
@@ -110,7 +110,12 @@
                         
                         <!-- Lista de livros encontrados na BU -->
                         <div id="bu-search-results-wrapper" class="connections-list-wrapper hidden">
-                            <h4 style="margin-top: 10px; color: #38bdf8;">Acervos na BU UFSC (Top 20):</h4>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 5px;">
+                                <h4 style="margin: 0; color: #38bdf8;">Acervos na BU (Top 20):</h4>
+                                <button id="btn-magic-choose" class="btn btn-secondary hidden" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; display: flex; align-items: center; gap: 5px; cursor: pointer; border-radius: 6px;" title="Adicionar uma obra aleatória ao grafo">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.21 1.21 0 0 0 1.72 0L21.64 5.36a1.21 1.21 0 0 0 0-1.72Z"></path><path d="m14 7 3 3"></path><path d="M5 6v.01"></path><path d="M19 14v.01"></path><path d="M10 2v.01"></path><path d="M7 10v.01"></path><path d="M14 22v.01"></path></svg> Escolha para mim
+                                </button>
+                            </div>
                             <ul id="bu-books-list" class="connected-books-list">
                                 <!-- Preenchido dinamicamente -->
                             </ul>

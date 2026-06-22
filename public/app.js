@@ -3,6 +3,7 @@ let network = null;
 let nodes = new vis.DataSet();
 let edges = new vis.DataSet();
 let sessionRecords = {}; // Armazena os registros brutos indexados por ID do acervo
+let currentSearchResults = []; // Armazena a última lista de resultados de busca na BU UFSC
 
 // Configuração de cores para os nós
 const COLORS = {
@@ -144,14 +145,25 @@ function parsePergamumJSON(data) {
         });
     }
 
-    // 1. Extração do Título (MARC 245)
+    // 1. Extração do Título (MARC 245 - Título principal + Subtítulo)
     let title = 'Sem Título';
     const titleField = fields['245'];
     if (titleField && titleField.detalhes && titleField.detalhes.length > 0) {
         const det = titleField.detalhes[0];
-        const idx = det._secao.indexOf('a');
-        if (idx !== -1) {
-            title = det.descricao[idx];
+        const idxA = det._secao.indexOf('a');
+        if (idxA !== -1) {
+            let mainTitle = cleanString(det.descricao[idxA]);
+            let subTitle = '';
+            const idxB = det._secao.indexOf('b');
+            if (idxB !== -1) {
+                let punct = (det.pontuacao && det.pontuacao[idxA]) ? det.pontuacao[idxA] : ': ';
+                punct = punct.replace(/\s+/g, ' ');
+                if (!punct.endsWith(' ') && punct.trim().length > 0) {
+                    punct += ' ';
+                }
+                subTitle = punct + cleanString(det.descricao[idxB]);
+            }
+            title = (mainTitle + subTitle).trim().replace(/\s+/g, ' ');
         }
     }
 
@@ -320,9 +332,16 @@ function addRecordToGraph(acervoId, metadata) {
     }
 
     // 1. Adiciona ou atualiza o nó do Livro
+    // Limita o título no gráfico a 60 caracteres + '...' para evitar rótulos gigantescos
+    const maxGraphTitleLength = 60;
+    let graphLabel = metadata.title;
+    if (graphLabel.length > maxGraphTitleLength) {
+        graphLabel = graphLabel.substring(0, maxGraphTitleLength).trim() + '...';
+    }
+
     const bookNode = {
         id: bookNodeId,
-        label: breakText(metadata.title, 20),
+        label: breakText(graphLabel, 20),
         shape: shape,
         image: coverUrl,
         size: 30,
@@ -539,6 +558,10 @@ function showNodeDetails(nodeId) {
         const resultsWrapper = document.getElementById('bu-search-results-wrapper');
         const searchBtn = document.getElementById('btn-search-bu');
         
+        // Garante que o botão mágico está oculto ao selecionar um novo nó
+        const magicBtn = document.getElementById('btn-magic-choose');
+        if (magicBtn) magicBtn.classList.add('hidden');
+        
         if ((node.type === 'subject' || node.type === 'author') && node.authorityId) {
             searchBox.classList.remove('hidden');
             resultsWrapper.classList.add('hidden'); // Oculta até que o usuário clique para buscar
@@ -601,8 +624,18 @@ async function searchConnectionOnBU(name, authorityId, type) {
         const data = await response.json();
         
         list.innerHTML = '';
+        currentSearchResults = [];
         
         if (data && Array.isArray(data) && data.length > 0) {
+            currentSearchResults = data.filter(item => item.cod_acervo);
+            const magicBtn = document.getElementById('btn-magic-choose');
+            if (magicBtn) {
+                if (currentSearchResults.length > 0) {
+                    magicBtn.classList.remove('hidden');
+                } else {
+                    magicBtn.classList.add('hidden');
+                }
+            }
             data.forEach(item => {
                 const acervoId = item.cod_acervo;
                 const title = item.descricao || item.obra;
@@ -648,10 +681,14 @@ async function searchConnectionOnBU(name, authorityId, type) {
                 }
             });
         } else {
+            const magicBtn = document.getElementById('btn-magic-choose');
+            if (magicBtn) magicBtn.classList.add('hidden');
             const typeLabel = type === 'author' ? 'autor' : 'assunto';
             list.innerHTML = `<li style="cursor: default; background: transparent; border: none;">Nenhum livro encontrado para este ${typeLabel} na BU.</li>`;
         }
     } catch (err) {
+        const magicBtn = document.getElementById('btn-magic-choose');
+        if (magicBtn) magicBtn.classList.add('hidden');
         console.error(err);
         list.innerHTML = `<li style="color: #ef4444; cursor: default; background: transparent; border: none;">Erro ao buscar: ${err.message}</li>`;
     }
@@ -681,9 +718,15 @@ async function expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                 
                 // 1. Adiciona nó do livro (inicialmente como box)
                 if (!nodes.get(bookNodeId)) {
+                    // Limita o título no gráfico a 60 caracteres + '...' para evitar rótulos gigantescos
+                    const maxGraphTitleLength = 60;
+                    let graphLabel = title;
+                    if (graphLabel.length > maxGraphTitleLength) {
+                        graphLabel = graphLabel.substring(0, maxGraphTitleLength).trim() + '...';
+                    }
                     nodes.add({
                         id: bookNodeId,
-                        label: breakText(title, 20),
+                        label: breakText(graphLabel, 20),
                         shape: 'box',
                         color: COLORS.book,
                         borderWidth: 3,
@@ -883,6 +926,54 @@ document.getElementById('btn-clear').onclick = () => {
 // Botão de Fechar Painel Lateral
 document.getElementById('btn-close-panel').onclick = hideDetailsPanel;
 
+// Botão Mágico - Escolha para mim
+document.getElementById('btn-magic-choose').onclick = async () => {
+    if (currentSearchResults.length === 0) return;
+    
+    // Filtra as obras que ainda não estão no grafo
+    let availableWorks = currentSearchResults.filter(item => !nodes.get(`book_${item.cod_acervo}`));
+    
+    if (availableWorks.length === 0) {
+        showStatus('Todas as obras já estão no grafo! Selecionando uma aleatória...', false);
+        availableWorks = currentSearchResults;
+        setTimeout(hideStatus, 1500);
+    } else {
+        showStatus('✨ O algoritmo escolheu uma obra para você!', false);
+        setTimeout(hideStatus, 1500);
+    }
+    
+    // Escolhe uma aleatória
+    const chosen = availableWorks[Math.floor(Math.random() * availableWorks.length)];
+    const acervoId = chosen.cod_acervo;
+    const bookId = `book_${acervoId}`;
+    
+    // Efeito de piscar o item na lista da barra lateral para dar feedback visual
+    const listItems = document.getElementById('bu-books-list').getElementsByTagName('li');
+    for (let li of listItems) {
+        if (li.innerText.includes(chosen.descricao || chosen.obra)) {
+            li.style.transition = 'all 0.3s ease';
+            li.style.backgroundColor = 'rgba(168, 85, 247, 0.4)'; // Destaque roxo mágico
+            li.style.borderColor = '#c084fc';
+            setTimeout(() => {
+                li.style.backgroundColor = '';
+                li.style.borderColor = '';
+            }, 1000);
+            break;
+        }
+    }
+    
+    if (nodes.get(bookId)) {
+        network.focus(bookId, { scale: 1.0, animation: { duration: 500 } });
+        network.selectNodes([bookId]);
+        showNodeDetails(bookId);
+    } else {
+        const metadata = await fetchAcervoMetadata(acervoId);
+        if (metadata) {
+            addRecordToGraph(acervoId, metadata);
+        }
+    }
+};
+
 // Botão de Exportar JSON
 document.getElementById('btn-export-json').onclick = () => {
     if (Object.keys(sessionRecords).length === 0) {
@@ -897,6 +988,8 @@ document.getElementById('btn-export-json').onclick = () => {
     downloadAnchor.click();
     downloadAnchor.remove();
 };
+
+
 
 // Inicialização da Página
 window.onload = async () => {

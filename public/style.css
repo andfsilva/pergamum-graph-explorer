@@ -42,9 +42,12 @@ body {
     gap: 0.75rem;
 }
 
-.logo-icon {
-    font-size: 2rem;
-    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6));
+.logo-img {
+    height: 38px;
+    width: auto;
+    object-fit: contain;
+    border-radius: 6px;
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.15));
 }
 
 .logo-text h1 {
