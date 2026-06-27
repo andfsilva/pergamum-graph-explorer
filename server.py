@@ -6,7 +6,8 @@ import json
 import os
 import re
 
-PORT = 3000
+HOST = os.environ.get('HOST', '127.0.0.1')
+PORT = int(os.environ.get('PORT', '3000'))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'public')
 
 class ProxyHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -187,8 +188,8 @@ if __name__ == '__main__':
     # Allow address reuse
     socketserver.TCPServer.allow_reuse_address = True
     
-    with socketserver.TCPServer(("127.0.0.1", PORT), handler) as httpd:
-        print(f"Pergamum Graph Explorer running at http://localhost:{PORT}")
+    with socketserver.TCPServer((HOST, PORT), handler) as httpd:
+        print(f"Pergamum Graph Explorer running at http://{HOST}:{PORT}")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:

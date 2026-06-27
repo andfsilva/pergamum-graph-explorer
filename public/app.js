@@ -486,7 +486,7 @@ function showNodeDetails(nodeId) {
         bookSec.classList.remove('hidden');
         genericSec.classList.add('hidden');
         
-        document.getElementById('detail-type-title').innerText = 'Ficha da obra';
+        document.getElementById('detail-type-title').innerText = 'Dados da obra';
         
         const record = sessionRecords[node.acervoId];
         
@@ -544,7 +544,7 @@ function showNodeDetails(nodeId) {
         bookSec.classList.add('hidden');
         genericSec.classList.remove('hidden');
         
-        document.getElementById('detail-type-title').innerText = 'Ficha de conexão';
+        document.getElementById('detail-type-title').innerText = 'Dados de conexão';
         
         // Define o tipo
         const badge = document.getElementById('detail-badge-type');
@@ -734,7 +734,7 @@ async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                     });
                 }
                 
-                // Cria ou complementa metadados na sessão (caso o usuário queira clicar nele para ver a ficha)
+                // Cria ou complementa metadados na sessão (caso o usuário queira clicar nele para ver os dados da obra)
                 if (!sessionRecords[acervoId]) {
                     sessionRecords[acervoId] = {
                         id: acervoId,
