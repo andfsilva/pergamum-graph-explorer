@@ -14,19 +14,19 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Painel de Controle Principal (Glassmorphism) -->
+        <!-- Painel de controle principal (Glassmorphism) -->
         <header class="main-header">
             <div class="logo-container">
                 <img src="https://portal.bu.ufsc.br/files/2020/07/cropped-BU_logo-2.png" alt="Logo BU UFSC" class="logo-img">
                 <div class="logo-text">
                     <h1>Pergamum Graph</h1>
-                    <p>Biblioteca Universitária UFSC</p>
+                    <p>Biblioteca Universitária (BU / UFSC)</p>
                 </div>
             </div>
             
             <form id="search-form" class="search-form">
                 <div class="input-wrapper">
-                    <input type="text" id="acervo-id" placeholder="Código do Acervo (ex: 267587)" required autocomplete="off">
+                    <input type="text" id="acervo-id" placeholder="Código do acervo (ex: 267587)" required autocomplete="off">
                     <button type="submit" id="btn-add" class="btn btn-primary">
                         <span class="btn-icon">＋</span> Adicionar
                     </button>
@@ -35,54 +35,54 @@
                     <label class="switch-label">
                         <input type="checkbox" id="merge-graphs" checked>
                         <span class="switch-slider"></span>
-                        <span class="label-text">Mesclar no Grafo da Sessão</span>
+                        <span class="label-text">Mesclar no grafo da sessão</span>
                     </label>
                 </div>
             </form>
             
             <div id="status-message" class="status-message hidden">
                 <div class="spinner"></div>
-                <span class="status-text">Buscando metadados...</span>
+                <span class="status-text">Buscando dados...</span>
             </div>
         </header>
 
         <div class="content-area">
-            <!-- Área do Grafo -->
+            <!-- Área do grafo -->
             <main class="graph-viewport">
                 <div id="network-canvas" class="canvas-container"></div>
                 
-                <!-- Barra de Ferramentas Flutuante -->
+                <!-- Barra de ferramentas flutuante -->
                 <div class="floating-toolbar">
-                    <button type="button" id="btn-fit" class="tool-btn" title="Centralizar Grafo">
-                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Centralizar Grafo</title><path d="M4 4h4v2H6v2H4V4zm16 0h-4v2h2v2h2V4zM4 20h4v-2H6v-2H4v4zm16 0h-4v-2h2v-2h2v4zM12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                    <button type="button" id="btn-fit" class="tool-btn" title="Centralizar grafo">
+                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Centralizar grafo</title><path d="M4 4h4v2H6v2H4V4zm16 0h-4v2h2v2h2V4zM4 20h4v-2H6v-2H4v4zm16 0h-4v-2h2v-2h2v4zM12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                     </button>
-                    <button type="button" id="btn-physics" class="tool-btn active" title="Alternar Física (Movimento)">
-                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Alternar Física (Movimento)</title><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                    <button type="button" id="btn-physics" class="tool-btn active" title="Alternar física (movimento)">
+                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Alternar física (movimento)</title><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
                     </button>
-                    <button type="button" id="btn-clear" class="tool-btn" title="Limpar Tudo">
-                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Limpar Tudo</title><path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"/></svg>
+                    <button type="button" id="btn-clear" class="tool-btn" title="Limpar tudo">
+                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Limpar tudo</title><path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"/></svg>
                     </button>
-                    <button type="button" id="btn-export-json" class="tool-btn" title="Exportar Dados (JSON)">
-                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Exportar Dados (JSON)</title><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                    <button type="button" id="btn-export-json" class="tool-btn" title="Exportar dados (JSON)">
+                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Exportar dados (JSON)</title><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                     </button>
                 </div>
             </main>
 
-            <!-- Painel de Detalhes Lateral -->
+            <!-- Painel lateral de detalhes -->
             <aside id="details-panel" class="details-panel hidden">
                 <div class="panel-header">
-                    <h2 id="detail-type-title">Detalhes do Nó</h2>
+                    <h2 id="detail-type-title">Detalhes do nó</h2>
                     <button type="button" id="btn-close-panel" class="close-btn">&times;</button>
                 </div>
                 <div class="panel-body">
-                    <!-- Informações do Livro -->
+                    <!-- Informações do livro -->
                     <div id="book-details" class="detail-section hidden">
                         <div class="cover-wrapper">
-                            <img id="detail-cover" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='170' viewBox='0 0 120 170'><rect width='120' height='170' fill='%232c3e50'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%23bdc3c7' font-family='sans-serif' font-size='12'>Sem Capa</text></svg>" alt="Capa do Livro">
+                            <img id="detail-cover" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='170' viewBox='0 0 120 170'><rect width='120' height='170' fill='%232c3e50'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%23bdc3c7' font-family='sans-serif' font-size='12'>Sem Capa</text></svg>" alt="Imagem da capa (pode ser diferente da versão da biblioteca)">
                         </div>
-                        <h3 id="detail-title" class="book-title-detail">Título do Livro</h3>
+                        <h3 id="detail-title" class="book-title-detail">Título do livro</h3>
                         <div class="info-grid">
-                            <div class="info-label">ID do Acervo</div>
+                            <div class="info-label">ID da obra</div>
                             <div id="detail-acervo-id" class="info-value">-</div>
                             
                             <div class="info-label">ISBN</div>
@@ -96,24 +96,24 @@
                         </div>
                     </div>
 
-                    <!-- Informações de Outros Nós (Autor, Assunto, Editora) -->
+                    <!-- Informações de outros nós (autor, assunto, editora) -->
                     <div id="generic-details" class="detail-section">
                         <div class="detail-badge" id="detail-badge-type">Categoria</div>
-                        <h3 id="detail-name" class="generic-name-detail">Nome do Nó</h3>
+                        <h3 id="detail-name" class="generic-name-detail">Nome do nó</h3>
                         
-                        <!-- Botão de buscar livros relacionados na BU (Apenas para Assuntos) -->
+                        <!-- Botão de buscar livros relacionados na BU (apenas para assuntos) -->
                         <div id="subject-search-box" class="subject-search-box hidden" style="margin-top: 5px;">
                             <button type="button" id="btn-search-bu" class="btn btn-secondary" style="width: 100%; font-size: 0.85rem; padding: 0.6rem;">
-                                🔍 Buscar acervos deste assunto na BU
+                                🔍 Buscar obras deste assunto na BU
                             </button>
                         </div>
                         
                         <!-- Lista de livros encontrados na BU -->
                         <div id="bu-search-results-wrapper" class="connections-list-wrapper hidden">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 5px;">
-                                <h4 style="margin: 0; color: #38bdf8;">Acervos na BU (Top 20):</h4>
+                                <h4 style="margin: 0; color: #38bdf8;">Obras encontradas na BU (Top 20):</h4>
                                 <button type="button" id="btn-magic-choose" class="btn btn-secondary hidden" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; display: flex; align-items: center; gap: 5px; cursor: pointer; border-radius: 6px;" title="Adicionar uma obra aleatória ao grafo">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.21 1.21 0 0 0 1.72 0L21.64 5.36a1.21 1.21 0 0 0 0-1.72Z"></path><path d="m14 7 3 3"></path><path d="M5 6v.01"></path><path d="M19 14v.01"></path><path d="M10 2v.01"></path><path d="M7 10v.01"></path><path d="M14 22v.01"></path></svg> Escolha para mim
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><title>Escolha para mim</title><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.21 1.21 0 0 0 1.72 0L21.64 5.36a1.21 1.21 0 0 0 0-1.72Z"></path><path d="m14 7 3 3"></path><path d="M5 6v.01"></path><path d="M19 14v.01"></path><path d="M10 2v.01"></path><path d="M7 10v.01"></path><path d="M14 22v.01"></path></svg> Escolha para mim
                                 </button>
                             </div>
                             <ul id="bu-books-list" class="connected-books-list">
@@ -122,7 +122,7 @@
                         </div>
 
                         <div class="connections-list-wrapper">
-                            <h4>Livros conectados no grafo:</h4>
+                            <h4>Obras conectadas no grafo:</h4>
                             <ul id="connected-books-list" class="connected-books-list">
                                 <!-- Preenchido dinamicamente -->
                             </ul>
@@ -133,7 +133,7 @@
         </div>
     </div>
 
-    <!-- Script de Inicialização da Aplicação -->
+    <!-- Script de inicialização da aplicação -->
     <script src="app.js"></script>
 </body>
 </html>

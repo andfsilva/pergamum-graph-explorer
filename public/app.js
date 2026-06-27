@@ -32,7 +32,7 @@ const COLORS = {
 // SVG de capa padrão embutido
 const DEFAULT_COVER_SVG = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='170' viewBox='0 0 120 170'><rect width='120' height='170' fill='%231e293b' rx='8'/><rect x='10' y='10' width='100' height='150' fill='none' stroke='%23334155' stroke-width='2' stroke-dasharray='4' rx='4'/><text x='50%' y='45%' dominant-baseline='middle' text-anchor='middle' fill='%2364748b' font-family='sans-serif' font-size='28'>📖</text><text x='50%' y='70%' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='sans-serif' font-size='10' font-weight='bold'>SEM CAPA</text></svg>`;
 
-// Inicialização do Grafo
+// Inicialização do grafo
 function initNetwork() {
     const container = document.getElementById('network-canvas');
     const data = { nodes, edges };
@@ -145,8 +145,8 @@ function parsePergamumJSON(data) {
         });
     }
 
-    // 1. Extração do Título (MARC 245 - Título principal + Subtítulo)
-    let title = 'Sem Título';
+    // 1. Extração do título (MARC 245 - Título principal + Subtítulo)
+    let title = 'Sem título';
     const titleField = fields['245'];
     if (titleField?.detalhes && titleField.detalhes.length > 0) {
         const det = titleField.detalhes[0];
@@ -167,7 +167,7 @@ function parsePergamumJSON(data) {
         }
     }
 
-    // 2. Extração dos Autores (MARC 100 - Principal, 700 - Secundários)
+    // 2. Extração dos autores (MARC 100 - Principal, 700 - Secundários)
     const authors = [];
     const mainAuthorField = fields['100'];
     if (mainAuthorField?.detalhes) {
@@ -196,7 +196,7 @@ function parsePergamumJSON(data) {
         });
     }
 
-    // 3. Extração dos Assuntos (MARC 650)
+    // 3. Extração dos assuntos (MARC 650)
     const subjects = [];
     const subjectField = fields['650'];
     if (subjectField?.detalhes) {
@@ -214,7 +214,7 @@ function parsePergamumJSON(data) {
         });
     }
 
-    // 4. Extração da Editora e Ano (MARC 260)
+    // 4. Extração da editora e ano (MARC 260)
     let publisher = 'Não informada';
     let year = '';
     const pubField = fields['260'];
@@ -239,7 +239,7 @@ function parsePergamumJSON(data) {
         for (const det of isbnField.detalhes) {
             const idx = det._secao.indexOf('a');
             if (idx !== -1) {
-                const match = det.descricao[idx].match(/\d{10,13}/);
+                const match = det.descricao[idx].match(/\d{10,13}[xX]?/);
                 if (match) {
                     isbn = match[0];
                     break; // Pega o primeiro ISBN válido
@@ -327,7 +327,7 @@ function addRecordToGraph(acervoId, metadata) {
         shape = 'circularImage';
     } else if (metadata.isbn) {
         // Usamos o link do Coce capas.bu.ufsc.br
-        coverUrl = `https://capas.bu.ufsc.br/cover?id=${metadata.isbn}&provider=gb,ol`;
+        coverUrl = `https://capas.bu.ufsc.br/cover?id=${metadata.isbn}&provider=aws,gb,ol`;
         shape = 'circularImage';
     }
 
@@ -385,13 +385,13 @@ function addRecordToGraph(acervoId, metadata) {
         }
     });
 
-    // 3. Processa Assuntos
+    // 3. Processa assuntos
     metadata.subjects.forEach(subjectObj => {
         const subject = subjectObj.name;
         const authId = subjectObj.authorityId;
         const subjectNodeId = `subject_${subject.toLowerCase().replace(/\s+/g, '_')}`;
         
-        // Adiciona nó do Assunto se não existir
+        // Adiciona nó do assunto se não existir
         if (!nodes.get(subjectNodeId)) {
             nodes.add({
                 id: subjectNodeId,
@@ -405,19 +405,19 @@ function addRecordToGraph(acervoId, metadata) {
             });
         }
 
-        // Conecta o Livro ao Assunto
+        // Conecta a obra ao assunto
         const edgeId = `edge_${bookNodeId}_${subjectNodeId}`;
         if (!edges.get(edgeId)) {
             edges.add({ id: edgeId, from: bookNodeId, to: subjectNodeId });
         }
     });
 
-    // 4. Processa Editora
+    // 4. Processa editora
     if (metadata.publisher && metadata.publisher !== 'Não informada') {
         const pub = metadata.publisher;
         const pubNodeId = `publisher_${pub.toLowerCase().replace(/\s+/g, '_')}`;
         
-        // Adiciona nó da Editora se não existir
+        // Adiciona nó da editora se não existir
         if (!nodes.get(pubNodeId)) {
             nodes.add({
                 id: pubNodeId,
@@ -430,7 +430,7 @@ function addRecordToGraph(acervoId, metadata) {
             });
         }
 
-        // Conecta o Livro à Editora
+        // Conecta a obra à editora
         const edgeId = `edge_${bookNodeId}_${pubNodeId}`;
         if (!edges.get(edgeId)) {
             edges.add({ id: edgeId, from: bookNodeId, to: pubNodeId });
@@ -486,7 +486,7 @@ function showNodeDetails(nodeId) {
         bookSec.classList.remove('hidden');
         genericSec.classList.add('hidden');
         
-        document.getElementById('detail-type-title').innerText = 'Ficha do Livro';
+        document.getElementById('detail-type-title').innerText = 'Ficha do livro';
         
         const record = sessionRecords[node.acervoId];
         
@@ -540,11 +540,11 @@ function showNodeDetails(nodeId) {
             }
         }
     } else {
-        // Exibe seção de Outro Nó (Autor, Assunto ou Editora)
+        // Exibe seção de outro nó (autor, assunto ou editora)
         bookSec.classList.add('hidden');
         genericSec.classList.remove('hidden');
         
-        document.getElementById('detail-type-title').innerText = 'Ficha de Conexão';
+        document.getElementById('detail-type-title').innerText = 'Ficha de conexão';
         
         // Define o tipo
         const badge = document.getElementById('detail-badge-type');
@@ -553,7 +553,7 @@ function showNodeDetails(nodeId) {
         
         document.getElementById('detail-name').innerText = node.name;
         
-        // Lógica específica para Assuntos e Autores (com botão de busca na BU)
+        // Lógica específica para assuntos e autores (com botão de busca na BU)
         const searchBox = document.getElementById('subject-search-box');
         const resultsWrapper = document.getElementById('bu-search-results-wrapper');
         const searchBtn = document.getElementById('btn-search-bu');
@@ -567,9 +567,9 @@ function showNodeDetails(nodeId) {
             resultsWrapper.classList.add('hidden'); // Oculta até que o usuário clique para buscar
             
             if (node.type === 'subject') {
-                searchBtn.innerText = '🔍 Buscar acervos deste assunto na BU';
+                searchBtn.innerText = '🔍 Buscar obras deste assunto na BU';
             } else {
-                searchBtn.innerText = '🔍 Buscar acervos deste autor na BU';
+                searchBtn.innerText = '🔍 Buscar obras deste autor na BU';
             }
             
             searchBtn.onclick = () => {
@@ -694,7 +694,7 @@ async function searchConnectionOnBU(name, authorityId, type) {
 
 // Expande o assunto diretamente no grafo, buscando livros relacionados na BU UFSC
 // e adicionando-os de forma conectada, junto com seus coautores e outros assuntos.
-async function expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
+async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
     showStatus('Buscando e desenhando conexões da BU...', false);
     try {
         const response = await fetch(`/api/pesquisa?termo=${encodeURIComponent(subjectName)}&indice=${authorityId}`);
@@ -989,13 +989,13 @@ document.getElementById('btn-export-json').onclick = () => {
 
 
 
-// Inicialização da Página
+// Inicialização da página
 window.onload = async () => {
     initNetwork();
     
-    // Verifica se há um código de acervo na URL (ex: ?cod_acervo=286946)
+    // Verifica se há um código de acervo na URL (ex: ?acervo=286946)
     const urlParams = new URLSearchParams(window.location.search);
-    const codAcervo = urlParams.get('cod_acervo');
+    const codAcervo = urlParams.get('acervo');
     if (codAcervo && /^\d+$/.test(codAcervo.trim())) {
         const cleanedId = codAcervo.trim();
         const metadata = await fetchAcervoMetadata(cleanedId);
