@@ -1,7 +1,7 @@
 // Estado da aplicação
 let network = null;
-let nodes = new vis.DataSet();
-let edges = new vis.DataSet();
+const nodes = new vis.DataSet();
+const edges = new vis.DataSet();
 let sessionRecords = {}; // Armazena os registros brutos indexados por ID do acervo
 let currentSearchResults = []; // Armazena a última lista de resultados de busca na BU UFSC
 
@@ -95,7 +95,7 @@ function initNetwork() {
     network = new vis.Network(container, data, options);
     
     // Evento de clique em um nó
-    network.on('click', function (params) {
+    network.on('click', (params) => {
         if (params.nodes.length > 0) {
             const nodeId = params.nodes[0];
             showNodeDetails(nodeId);
@@ -105,7 +105,7 @@ function initNetwork() {
     });
 
     // Evento de duplo clique para expandir o nó (buscar conexões)
-    network.on('doubleClick', async function (params) {
+    network.on('doubleClick', async (params) => {
         if (params.nodes.length > 0) {
             const nodeId = params.nodes[0];
             const node = nodes.get(nodeId);
@@ -139,7 +139,7 @@ function initNetwork() {
 // Analisa a resposta JSON nativa do Pergamum e extrai os campos MARC relevantes
 function parsePergamumJSON(data) {
     const fields = {};
-    if (data && data.campos) {
+    if (data?.campos) {
         data.campos.forEach(c => {
             fields[c.ordem] = c;
         });
@@ -148,15 +148,15 @@ function parsePergamumJSON(data) {
     // 1. Extração do Título (MARC 245 - Título principal + Subtítulo)
     let title = 'Sem Título';
     const titleField = fields['245'];
-    if (titleField && titleField.detalhes && titleField.detalhes.length > 0) {
+    if (titleField?.detalhes && titleField.detalhes.length > 0) {
         const det = titleField.detalhes[0];
         const idxA = det._secao.indexOf('a');
         if (idxA !== -1) {
-            let mainTitle = cleanString(det.descricao[idxA]);
+            const mainTitle = cleanString(det.descricao[idxA]);
             let subTitle = '';
             const idxB = det._secao.indexOf('b');
             if (idxB !== -1) {
-                let punct = (det.pontuacao && det.pontuacao[idxA]) ? det.pontuacao[idxA] : ': ';
+                let punct = (det.pontuacao?.[idxA]) ? det.pontuacao[idxA] : ': ';
                 punct = punct.replace(/\s+/g, ' ');
                 if (!punct.endsWith(' ') && punct.trim().length > 0) {
                     punct += ' ';
@@ -170,7 +170,7 @@ function parsePergamumJSON(data) {
     // 2. Extração dos Autores (MARC 100 - Principal, 700 - Secundários)
     const authors = [];
     const mainAuthorField = fields['100'];
-    if (mainAuthorField && mainAuthorField.detalhes) {
+    if (mainAuthorField?.detalhes) {
         mainAuthorField.detalhes.forEach(det => {
             const idx = det._secao.indexOf('a');
             if (idx !== -1) {
@@ -183,7 +183,7 @@ function parsePergamumJSON(data) {
         });
     }
     const addedAuthorField = fields['700'];
-    if (addedAuthorField && addedAuthorField.detalhes) {
+    if (addedAuthorField?.detalhes) {
         addedAuthorField.detalhes.forEach(det => {
             const idx = det._secao.indexOf('a');
             if (idx !== -1) {
@@ -199,7 +199,7 @@ function parsePergamumJSON(data) {
     // 3. Extração dos Assuntos (MARC 650)
     const subjects = [];
     const subjectField = fields['650'];
-    if (subjectField && subjectField.detalhes) {
+    if (subjectField?.detalhes) {
         subjectField.detalhes.forEach(det => {
             const idx = det._secao.indexOf('a');
             if (idx !== -1) {
@@ -218,7 +218,7 @@ function parsePergamumJSON(data) {
     let publisher = 'Não informada';
     let year = '';
     const pubField = fields['260'];
-    if (pubField && pubField.detalhes && pubField.detalhes.length > 0) {
+    if (pubField?.detalhes && pubField.detalhes.length > 0) {
         const det = pubField.detalhes[0];
         const pubIdx = det._secao.indexOf('b');
         if (pubIdx !== -1) {
@@ -235,8 +235,8 @@ function parsePergamumJSON(data) {
     // 5. Extração do ISBN (MARC 20)
     let isbn = '';
     const isbnField = fields['20'];
-    if (isbnField && isbnField.detalhes) {
-        for (let det of isbnField.detalhes) {
+    if (isbnField?.detalhes) {
+        for (const det of isbnField.detalhes) {
             const idx = det._secao.indexOf('a');
             if (idx !== -1) {
                 const match = det.descricao[idx].match(/\d{10,13}/);
@@ -251,8 +251,8 @@ function parsePergamumJSON(data) {
     // 6. Extração do link da capa (MARC 856)
     let coverUrl = '';
     const coverField = fields['856'];
-    if (coverField && coverField.detalhes) {
-        for (let det of coverField.detalhes) {
+    if (coverField?.detalhes) {
+        for (const det of coverField.detalhes) {
             if (det.link_acesso && (det.link_acesso.includes('/covers/') || det.link_acesso.includes('capa'))) {
                 coverUrl = det.link_acesso;
                 break;
@@ -267,7 +267,7 @@ function parsePergamumJSON(data) {
 function cleanString(str) {
     if (!str) return '';
     return str.trim()
-              .replace(/[\s\.,;:/\-]+$/, '') // Remove pontuação terminal
+              .replace(/[\s.,;:/-]+$/, '') // Remove pontuação terminal
               .trim();
 }
 
@@ -282,7 +282,7 @@ async function fetchAcervoMetadata(acervoId) {
         const data = await response.json();
         
         // Verifica se a resposta contém dados válidos
-        if (!data || !data.campos || data.campos.length === 0) {
+        if (!data?.campos || data.campos.length === 0) {
             throw new Error('Nenhum registro encontrado para este código de acervo.');
         }
         
@@ -295,7 +295,7 @@ async function fetchAcervoMetadata(acervoId) {
                 const coverRes = await fetch(`https://capas.bu.ufsc.br/cover?id=${metadata.isbn}`);
                 if (coverRes.ok) {
                     const coverData = await coverRes.json();
-                    if (coverData && coverData[metadata.isbn]) {
+                    if (coverData?.[metadata.isbn]) {
                         metadata.coverUrl = coverData[metadata.isbn];
                     }
                 }
@@ -336,7 +336,7 @@ function addRecordToGraph(acervoId, metadata) {
     const maxGraphTitleLength = 60;
     let graphLabel = metadata.title;
     if (graphLabel.length > maxGraphTitleLength) {
-        graphLabel = graphLabel.substring(0, maxGraphTitleLength).trim() + '...';
+        graphLabel = `${graphLabel.substring(0, maxGraphTitleLength).trim()}...`;
     }
 
     const bookNode = {
@@ -454,12 +454,12 @@ function addRecordToGraph(acervoId, metadata) {
 function breakText(text, maxChars) {
     if (text.length <= maxChars) return text;
     const words = text.split(/\s+/);
-    let lines = [];
+    const lines = [];
     let currentLine = '';
     
     words.forEach(word => {
-        if ((currentLine + ' ' + word).trim().length <= maxChars) {
-            currentLine = (currentLine + ' ' + word).trim();
+        if ((`${currentLine} ${word}`).trim().length <= maxChars) {
+            currentLine = (`${currentLine} ${word}`).trim();
         } else {
             if (currentLine) lines.push(currentLine);
             currentLine = word;
@@ -488,7 +488,7 @@ function showNodeDetails(nodeId) {
         
         document.getElementById('detail-type-title').innerText = 'Ficha do Livro';
         
-        let record = sessionRecords[node.acervoId];
+        const record = sessionRecords[node.acervoId];
         
         // Se temos apenas dados básicos do livro, faz o fetch completo em segundo plano para enriquecer!
         if (record && (record.publisher === 'Não informada' || !record.isbn)) {
@@ -586,9 +586,7 @@ function showNodeDetails(nodeId) {
         
         // Percorre todas as arestas conectadas a este nó
         const connectedEdges = edges.get({
-            filter: function (item) {
-                return item.from === nodeId || item.to === nodeId;
-            }
+            filter: (item) => item.from === nodeId || item.to === nodeId
         });
         
         connectedEdges.forEach(edge => {
@@ -722,7 +720,7 @@ async function expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                     const maxGraphTitleLength = 60;
                     let graphLabel = title;
                     if (graphLabel.length > maxGraphTitleLength) {
-                        graphLabel = graphLabel.substring(0, maxGraphTitleLength).trim() + '...';
+                        graphLabel = `${graphLabel.substring(0, maxGraphTitleLength).trim()}...`;
                     }
                     nodes.add({
                         id: bookNodeId,
@@ -756,7 +754,7 @@ async function expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                 }
                 
                 // 2. Adiciona autores deste acervo retornados na busca
-                if (item.dados_adicionais && item.dados_adicionais.A) {
+                if (item.dados_adicionais?.A) {
                     item.dados_adicionais.A.forEach(a => {
                         const authorName = cleanString(a.descricao);
                         const authorId = a.codigo;
@@ -787,7 +785,7 @@ async function expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                 }
                 
                 // 3. Adiciona outros assuntos deste acervo retornados na busca
-                if (item.dados_adicionais && item.dados_adicionais.S) {
+                if (item.dados_adicionais?.S) {
                     item.dados_adicionais.S.forEach(s => {
                         const sName = cleanString(s.descricao);
                         const sId = s.codigo;
@@ -857,7 +855,7 @@ function hideStatus() {
 }
 
 // Listeners de UI
-document.getElementById('search-form').addEventListener('submit', async function (e) {
+document.getElementById('search-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const input = document.getElementById('acervo-id');
     const acervoId = input.value.trim();
@@ -949,7 +947,7 @@ document.getElementById('btn-magic-choose').onclick = async () => {
     
     // Efeito de piscar o item na lista da barra lateral para dar feedback visual
     const listItems = document.getElementById('bu-books-list').getElementsByTagName('li');
-    for (let li of listItems) {
+    for (const li of listItems) {
         if (li.innerText.includes(chosen.descricao || chosen.obra)) {
             li.style.transition = 'all 0.3s ease';
             li.style.backgroundColor = 'rgba(168, 85, 247, 0.4)'; // Destaque roxo mágico
@@ -980,7 +978,7 @@ document.getElementById('btn-export-json').onclick = () => {
         alert('Nenhum dado para exportar ainda!');
         return;
     }
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sessionRecords, null, 2));
+    const dataStr = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(sessionRecords, null, 2))}`;
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
     downloadAnchor.setAttribute("download", `pergamum_grafo_sessao_${Date.now()}.json`);

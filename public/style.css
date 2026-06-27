@@ -54,6 +54,7 @@ body {
     font-size: 1.25rem;
     font-weight: 700;
     background: linear-gradient(135deg, #38bdf8 0%, #c084fc 100%);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     letter-spacing: -0.5px;
@@ -117,7 +118,6 @@ body {
 
 .btn-primary {
     background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
-    color: #white;
     color: white;
     font-weight: 600;
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);

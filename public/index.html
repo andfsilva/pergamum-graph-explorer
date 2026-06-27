@@ -53,17 +53,17 @@
                 
                 <!-- Barra de Ferramentas Flutuante -->
                 <div class="floating-toolbar">
-                    <button id="btn-fit" class="tool-btn" title="Centralizar Grafo">
-                        <svg viewBox="0 0 24 24" class="svg-icon"><path d="M4 4h4v2H6v2H4V4zm16 0h-4v2h2v2h2V4zM4 20h4v-2H6v-2H4v4zm16 0h-4v-2h2v-2h2v4zM12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                    <button type="button" id="btn-fit" class="tool-btn" title="Centralizar Grafo">
+                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Centralizar Grafo</title><path d="M4 4h4v2H6v2H4V4zm16 0h-4v2h2v2h2V4zM4 20h4v-2H6v-2H4v4zm16 0h-4v-2h2v-2h2v4zM12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                     </button>
-                    <button id="btn-physics" class="tool-btn active" title="Alternar Física (Movimento)">
-                        <svg viewBox="0 0 24 24" class="svg-icon"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                    <button type="button" id="btn-physics" class="tool-btn active" title="Alternar Física (Movimento)">
+                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Alternar Física (Movimento)</title><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
                     </button>
-                    <button id="btn-clear" class="tool-btn" title="Limpar Tudo">
-                        <svg viewBox="0 0 24 24" class="svg-icon"><path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"/></svg>
+                    <button type="button" id="btn-clear" class="tool-btn" title="Limpar Tudo">
+                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Limpar Tudo</title><path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"/></svg>
                     </button>
-                    <button id="btn-export-json" class="tool-btn" title="Exportar Dados (JSON)">
-                        <svg viewBox="0 0 24 24" class="svg-icon"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                    <button type="button" id="btn-export-json" class="tool-btn" title="Exportar Dados (JSON)">
+                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Exportar Dados (JSON)</title><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                     </button>
                 </div>
             </main>
@@ -72,7 +72,7 @@
             <aside id="details-panel" class="details-panel hidden">
                 <div class="panel-header">
                     <h2 id="detail-type-title">Detalhes do Nó</h2>
-                    <button id="btn-close-panel" class="close-btn">&times;</button>
+                    <button type="button" id="btn-close-panel" class="close-btn">&times;</button>
                 </div>
                 <div class="panel-body">
                     <!-- Informações do Livro -->
@@ -103,7 +103,7 @@
                         
                         <!-- Botão de buscar livros relacionados na BU (Apenas para Assuntos) -->
                         <div id="subject-search-box" class="subject-search-box hidden" style="margin-top: 5px;">
-                            <button id="btn-search-bu" class="btn btn-secondary" style="width: 100%; font-size: 0.85rem; padding: 0.6rem;">
+                            <button type="button" id="btn-search-bu" class="btn btn-secondary" style="width: 100%; font-size: 0.85rem; padding: 0.6rem;">
                                 🔍 Buscar acervos deste assunto na BU
                             </button>
                         </div>
@@ -112,7 +112,7 @@
                         <div id="bu-search-results-wrapper" class="connections-list-wrapper hidden">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 5px;">
                                 <h4 style="margin: 0; color: #38bdf8;">Acervos na BU (Top 20):</h4>
-                                <button id="btn-magic-choose" class="btn btn-secondary hidden" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; display: flex; align-items: center; gap: 5px; cursor: pointer; border-radius: 6px;" title="Adicionar uma obra aleatória ao grafo">
+                                <button type="button" id="btn-magic-choose" class="btn btn-secondary hidden" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; display: flex; align-items: center; gap: 5px; cursor: pointer; border-radius: 6px;" title="Adicionar uma obra aleatória ao grafo">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.21 1.21 0 0 0 1.72 0L21.64 5.36a1.21 1.21 0 0 0 0-1.72Z"></path><path d="m14 7 3 3"></path><path d="M5 6v.01"></path><path d="M19 14v.01"></path><path d="M10 2v.01"></path><path d="M7 10v.01"></path><path d="M14 22v.01"></path></svg> Escolha para mim
                                 </button>
                             </div>

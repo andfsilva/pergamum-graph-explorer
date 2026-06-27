@@ -1,8 +1,8 @@
-const http = require('http');
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
-const url = require('url');
+const http = require('node:http');
+const https = require('node:https');
+const fs = require('node:fs');
+const path = require('node:path');
+const url = require('node:url');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -81,7 +81,7 @@ const server = http.createServer((req, res) => {
 
     // Static file serving
     // Default to index.html if path is /
-    let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
+    const filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
 
     // Security check: ensure path is within PUBLIC_DIR
     if (!filePath.startsWith(PUBLIC_DIR)) {
