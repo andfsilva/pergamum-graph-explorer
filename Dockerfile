@@ -1,13 +1,12 @@
-FROM python:3.12-slim
+FROM node:alpine
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
+ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=3000
 
 WORKDIR /app
 
-RUN addgroup --system app && adduser --system --ingroup app app
+RUN addgroup -S app && adduser -S -G app app
 
 COPY --chown=app:app . .
 
@@ -16,6 +15,6 @@ USER app
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3000/', timeout=2).read()" || exit 1
+  CMD node -e "const http=require('http'); const req=http.get({host:'127.0.0.1',port:3000,path:'/'},(res)=>process.exit(res.statusCode===200?0:1)); req.on('error',()=>process.exit(1));" || exit 1
 
-ENTRYPOINT ["python", "server.py"]
+CMD ["node", "server.js"]

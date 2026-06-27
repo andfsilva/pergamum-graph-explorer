@@ -31,14 +31,18 @@ Um explorador visual e interativo de conexões para o acervo da Biblioteca Unive
 
 - **Frontend**: HTML5, CSS3 (com design Dark Glassmorphism moderno e responsivo) e JavaScript (vanilla).
 - **Visualização de rede**: [Vis-Network](https://visjs.github.io/vis-network/docs/network/) para renderização dinâmica e física interativa das conexões.
-- **Backend**: Python 3.12 (usando a biblioteca nativa `http.server` para servir os arquivos e atuar como proxy CORS transparente para a API da UFSC).
+- **Backend**: Node.js (usando um servidor HTTP simples em `server.js` para servir os arquivos e atuar como proxy para a API da UFSC).
 
 ---
 
 ## 💻 Como executar localmente
 
-1. Certifique-se de ter o Python 3.12 instalado no sistema.
+1. Certifique-se de ter o Node.js instalado no sistema.
 2. Abra um terminal na pasta do projeto e inicie o servidor:
+   ```bash
+   node server.js
+   ```
+   ou
    ```bash
    python server.py
    ```
@@ -55,6 +59,8 @@ Um explorador visual e interativo de conexões para o acervo da Biblioteca Unive
    docker run --rm -p 3000:3000 pergamum-graph-explorer:latest
    ```
 3. Acesse no navegador: [http://localhost:3000](http://localhost:3000)
+
+> A imagem usa `node:alpine` e executa o servidor com `node server.js`, com execução por um usuário não-root para melhorar a segurança.
 
 ---
 

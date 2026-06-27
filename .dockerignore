@@ -7,3 +7,12 @@ __pycache__/
 Dockerfile
 README.md
 imagem.png
+node_modules/
+npm-debug.log
+*.log
+*.tmp
+*.swp
+.vscode/
+.idea/
+.env
+.env.*
