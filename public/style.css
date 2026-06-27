@@ -1,4 +1,4 @@
-/* Configurações Globais */
+/* Configurações globais */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -13,7 +13,7 @@ body {
     overflow: hidden;
 }
 
-/* Container Principal */
+/* Container principal */
 .app-container {
     display: flex;
     flex-direction: column;
@@ -21,7 +21,7 @@ body {
     width: 100vw;
 }
 
-/* Header com Efeito Glassmorphism */
+/* Header com efeito Glassmorphism */
 .main-header {
     background: rgba(22, 28, 38, 0.75);
     backdrop-filter: blur(16px);
@@ -67,7 +67,7 @@ body {
     letter-spacing: 1px;
 }
 
-/* Formulário de Pesquisa */
+/* Formulário de pesquisa */
 .search-form {
     display: flex;
     flex-direction: column;
@@ -177,7 +177,7 @@ body {
     padding-left: 0.25rem;
 }
 
-/* Switch Toggle Customizado */
+/* Switch toggle customizado */
 .switch-label {
     display: flex;
     align-items: center;
@@ -221,7 +221,7 @@ body {
     transform: translateX(12px);
 }
 
-/* Status de Carregamento */
+/* Status de carregamento */
 .status-message {
     display: flex;
     align-items: center;
@@ -323,7 +323,7 @@ body {
     fill: currentColor;
 }
 
-/* Painel de Detalhes Lateral */
+/* Painel de detalhes lateral */
 .details-panel {
     width: 380px;
     height: 100%;
@@ -380,7 +380,7 @@ body {
     animation: fadeIn 0.25s ease;
 }
 
-/* Estilo do Livro no Painel */
+/* Estilo da obra no painel */
 .cover-wrapper {
     display: flex;
     justify-content: center;
@@ -428,7 +428,7 @@ body {
     word-break: break-word;
 }
 
-/* Badge e Estilos Genéricos */
+/* Badge e estilos genéricos */
 .detail-badge {
     align-self: flex-start;
     padding: 0.25rem 0.6rem;

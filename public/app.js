@@ -331,7 +331,7 @@ function addRecordToGraph(acervoId, metadata) {
         shape = 'circularImage';
     }
 
-    // 1. Adiciona ou atualiza o nó do Livro
+    // 1. Adiciona ou atualiza o nó da obra
     // Limita o título no gráfico a 60 caracteres + '...' para evitar rótulos gigantescos
     const maxGraphTitleLength = 60;
     let graphLabel = metadata.title;
@@ -482,15 +482,15 @@ function showNodeDetails(nodeId) {
     panel.classList.remove('hidden');
 
     if (node.type === 'book') {
-        // Exibe seção do Livro
+        // Exibe seção da obra
         bookSec.classList.remove('hidden');
         genericSec.classList.add('hidden');
         
-        document.getElementById('detail-type-title').innerText = 'Ficha do livro';
+        document.getElementById('detail-type-title').innerText = 'Ficha da obra';
         
         const record = sessionRecords[node.acervoId];
         
-        // Se temos apenas dados básicos do livro, faz o fetch completo em segundo plano para enriquecer!
+        // Se temos apenas dados básicos da obra, faz o fetch completo em segundo plano para enriquecer!
         if (record && (record.publisher === 'Não informada' || !record.isbn)) {
             fetchAcervoMetadata(node.acervoId).then(fullMeta => {
                 if (fullMeta) {
@@ -692,8 +692,8 @@ async function searchConnectionOnBU(name, authorityId, type) {
     }
 }
 
-// Expande o assunto diretamente no grafo, buscando livros relacionados na BU UFSC
-// e adicionando-os de forma conectada, junto com seus coautores e outros assuntos.
+// Expande o assunto diretamente no grafo, buscando obras relacionadas na BU UFSC
+// e adicionando-as de forma conectada, junto com seus coautores e outros assuntos.
 async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
     showStatus('Buscando e desenhando conexões da BU...', false);
     try {
@@ -714,7 +714,7 @@ async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                 const title = cleanString(item.obra || item.descricao);
                 const bookNodeId = `book_${acervoId}`;
                 
-                // 1. Adiciona nó do livro (inicialmente como box)
+                // 1. Adiciona nó da obra (inicialmente como box)
                 if (!nodes.get(bookNodeId)) {
                     // Limita o título no gráfico a 60 caracteres + '...' para evitar rótulos gigantescos
                     const maxGraphTitleLength = 60;
@@ -753,7 +753,7 @@ async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                     edges.add({ id: mainEdgeId, from: bookNodeId, to: subjectNodeId });
                 }
                 
-                // 2. Adiciona autores deste acervo retornados na busca
+                // 2. Adiciona autores desta obra retornados na busca
                 if (item.dados_adicionais?.A) {
                     item.dados_adicionais.A.forEach(a => {
                         const authorName = cleanString(a.descricao);
