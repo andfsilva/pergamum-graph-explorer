@@ -1,6 +1,6 @@
 # Pergamum Graph Explorer (BU / UFSC)
 
-![Interface do Pergamum Graph Explorer](docs/hero-dark.png)
+![Pergamum Graph Explorer — rede de conexões do acervo a partir do Cálculo de James Stewart](docs/graph-large.png)
 
 Um explorador visual e interativo de conexões para o acervo da Biblioteca Universitária da Universidade Federal de Santa Catarina (BU / UFSC). Esta ferramenta permite carregar dados bibliográficos e navegar pelas relações de **autores**, **assuntos** e **editoras** por meio de um grafo de rede dinâmico.
 
