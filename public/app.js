@@ -321,14 +321,31 @@ async function fetchAcervoMetadata(acervoId) {
     showStatus('Buscando dados no catálogo...', false);
     try {
         const response = await fetch(`/api/acervo/${acervoId}`);
+        
+        let data = null;
+        try {
+            data = await response.json();
+        } catch (e) {
+            data = null;
+        }
+
         if (!response.ok) {
+            if (data?.message) {
+                throw new Error(data.message);
+            }
+            if (response.status === 404) {
+                throw new Error('Acervo não encontrado!');
+            }
             throw new Error(`Código de erro HTTP: ${response.status}`);
         }
-        const data = await response.json();
         
-        // Verifica se a resposta contém dados válidos
+        // Verifica se a resposta contém indicativo de erro ou ausência de dados válidos
+        if (data?.status === 404 || data?.error === 'Not Found' || (data?.message && data.message.toLowerCase().includes('não encontrado'))) {
+            throw new Error(data.message || 'Acervo não encontrado!');
+        }
+
         if (!data?.campos || data.campos.length === 0) {
-            throw new Error('Nenhum registro encontrado para este código de acervo.');
+            throw new Error('Acervo não encontrado!');
         }
         
         hideStatus();
@@ -352,7 +369,8 @@ async function fetchAcervoMetadata(acervoId) {
         return metadata;
     } catch (error) {
         console.error(error);
-        showStatus(`Erro: ${error.message}`, true);
+        showStatus(`${error.message}`, true);
+        setTimeout(hideStatus, 4000);
         return null;
     }
 }
@@ -571,7 +589,12 @@ function showNodeDetails(nodeId) {
         
         if (record) {
             document.getElementById('detail-title').innerText = record.title;
-            document.getElementById('detail-acervo-id').innerText = record.id;
+            const acervoElem = document.getElementById('detail-acervo-id');
+            if (record.id) {
+                acervoElem.innerHTML = `<a href="https://pergamum.ufsc.br/acervo/${encodeURIComponent(record.id)}/exemplares" target="_blank" rel="noopener noreferrer" title="Abrir página de exemplares no Pergamum">${record.id} <svg style="width:12px;height:12px;vertical-align:middle;margin-left:2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></a>`;
+            } else {
+                acervoElem.innerText = '-';
+            }
             document.getElementById('detail-isbn').innerText = record.isbn || 'Carregando...';
             document.getElementById('detail-publisher').innerText = record.publisher || 'Carregando...';
             document.getElementById('detail-year').innerText = record.year || 'Carregando...';
@@ -937,6 +960,7 @@ document.getElementById('search-form').addEventListener('submit', async (e) => {
     const metadata = await fetchAcervoMetadata(acervoId);
     if (metadata) {
         addRecordToGraph(acervoId, metadata);
+        window.history.pushState(null, '', `/acervo/${acervoId}`);
         input.value = '';
     }
 });
@@ -1043,18 +1067,56 @@ document.getElementById('btn-export-json').onclick = () => {
 
 
 
+// Extrai o ID do acervo a partir do caminho (/acervo/12345) ou de parâmetros da URL (?cod_acervo=12345)
+function getAcervoIdFromUrl() {
+    // 1. Prioridade: rota no formato /acervo/CodAcervo
+    const pathMatch = window.location.pathname.match(/\/acervo\/(\d+)/i);
+    if (pathMatch && pathMatch[1]) {
+        return pathMatch[1];
+    }
+    // 2. Suporte complementar: query params (?cod_acervo=..., ?acervo=..., ?id=...)
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramVal = urlParams.get('cod_acervo') || urlParams.get('acervo') || urlParams.get('codAcervo') || urlParams.get('id');
+    if (paramVal && /^\d+$/.test(paramVal.trim())) {
+        return paramVal.trim();
+    }
+    return null;
+}
+
 // Inicialização da página
 window.onload = async () => {
     initNetwork();
-    
-    // Verifica se há um código de acervo na URL (ex: ?acervo=286946)
-    const urlParams = new URLSearchParams(window.location.search);
-    const codAcervo = urlParams.get('acervo');
-    if (codAcervo && /^\d+$/.test(codAcervo.trim())) {
-        const cleanedId = codAcervo.trim();
-        const metadata = await fetchAcervoMetadata(cleanedId);
+    updateThemeButton(currentTheme());
+
+    // Verifica se há um código de acervo na URL (formato /acervo/286946 ou ?cod_acervo=286946)
+    const codAcervo = getAcervoIdFromUrl();
+    if (codAcervo) {
+        document.getElementById('acervo-id').value = codAcervo;
+        const metadata = await fetchAcervoMetadata(codAcervo);
         if (metadata) {
-            addRecordToGraph(cleanedId, metadata);
+            addRecordToGraph(codAcervo, metadata);
+            // Mantém a barra de endereço padronizada no formato /acervo/CodAcervo
+            if (window.location.pathname !== `/acervo/${codAcervo}`) {
+                window.history.replaceState(null, '', `/acervo/${codAcervo}`);
+            }
         }
     }
 };
+
+// Suporte à navegação do histórico (botões Voltar/Avançar do navegador)
+window.addEventListener('popstate', async () => {
+    const codAcervo = getAcervoIdFromUrl();
+    if (codAcervo) {
+        const bookNodeId = `book_${codAcervo}`;
+        if (nodes.get(bookNodeId)) {
+            network.focus(bookNodeId, { scale: 1.0, animation: { duration: 500 } });
+            network.selectNodes([bookNodeId]);
+            showNodeDetails(bookNodeId);
+        } else {
+            const metadata = await fetchAcervoMetadata(codAcervo);
+            if (metadata) {
+                addRecordToGraph(codAcervo, metadata);
+            }
+        }
+    }
+});

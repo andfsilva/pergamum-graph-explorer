@@ -4,13 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Explorador de conexões - BU / UFSC</title>
+    <base href="/">
+    <!-- Aplica o tema salvo antes da pintura (evita flash) -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('pergamum-theme');
+          if (t === 'light' || t === 'dark') {
+            document.documentElement.setAttribute('data-theme', t);
+          }
+        } catch (e) { /* localStorage indisponível */ }
+      })();
+    </script>
     <!-- Fonte Outfit moderna -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Biblioteca Vis-Network Standalone -->
     <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <div class="app-container">
@@ -32,11 +44,19 @@
                     </button>
                 </div>
                 <div class="merge-control">
-                    <label class="switch-label">
+                    <label class="switch-label" title="Mesclar no grafo da sessão">
                         <input type="checkbox" id="merge-graphs" checked>
                         <span class="switch-slider"></span>
                         <span class="label-text">Mesclar no grafo da sessão</span>
                     </label>
+                    <div class="tooltip-container">
+                        <span class="info-help-icon" tabindex="0" aria-label="Explicação sobre mesclar grafo">?</span>
+                        <div class="tooltip-box">
+                            <div class="tooltip-title">Mesclar no grafo da sessão</div>
+                            <p><strong>🟢 Marcado:</strong> Mantém as obras anteriores na tela e conecta automaticamente novos livros que compartilhem os mesmos autores, assuntos ou editoras.</p>
+                            <p><strong>⚪ Desmarcado:</strong> Limpa o grafo e desenha apenas a nova obra pesquisada.</p>
+                        </div>
+                    </div>
                 </div>
             </form>
             
@@ -94,7 +114,7 @@
                         </div>
                         <h3 id="detail-title" class="book-title-detail">Título da obra</h3>
                         <div class="info-grid">
-                            <div class="info-label">ID da obra</div>
+                            <div class="info-label">Acervo</div>
                             <div id="detail-acervo-id" class="info-value">-</div>
                             
                             <div class="info-label">ISBN</div>
@@ -146,6 +166,6 @@
     </div>
 
     <!-- Script de inicialização da aplicação -->
-    <script src="app.js"></script>
+    <script src="/app.js"></script>
 </body>
 </html>
