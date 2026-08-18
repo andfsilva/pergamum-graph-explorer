@@ -558,9 +558,46 @@ body {
 /* Área de Conteúdo principal */
 .content-area {
     display: flex;
-    flex-grow: 1;
-    height: calc(100vh - 73px); /* Subtrai o header */
+    flex: 1 1 auto;
+    min-height: 0; /* permite encolher p/ caber header + rodapé no flex column */
     position: relative;
+}
+
+/* Rodapé institucional */
+.app-footer {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+    padding: 0.55rem 2rem;
+    background: rgba(var(--glass-bg), 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--glass-border);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--text-faint);
+    text-align: center;
+    z-index: 40;
+}
+
+.app-footer .footer-org {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.app-footer a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.app-footer a:hover {
+    color: var(--accent-strong);
+    text-decoration: underline;
 }
 
 /* Canvas do Grafo */
