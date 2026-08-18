@@ -1,6 +1,6 @@
-# Pergamum Graph Explorer (BU UFSC)
+# Pergamum Graph Explorer (BU / UFSC)
 
-![Interface do Pergamum Graph Explorer](imagem.png)
+![Interface do Pergamum Graph Explorer](docs/hero-dark.png)
 
 Um explorador visual e interativo de conexões para o acervo da Biblioteca Universitária da Universidade Federal de Santa Catarina (BU / UFSC). Esta ferramenta permite carregar dados bibliográficos e navegar pelas relações de **autores**, **assuntos** e **editoras** por meio de um grafo de rede dinâmico.
 
@@ -8,13 +8,30 @@ Um explorador visual e interativo de conexões para o acervo da Biblioteca Unive
 
 ## 🚀 Como funciona
 
-1. **Adição por código**: insira um código de acervo (ex: `267587` para Cálculo, ou `356805` para *Deep Work*) para desenhar o nó da obra no grafo.
-2. **Conexões automáticas**: o sistema lê os campos MARC21 da obra e cria conexões visuais com seus:
-   - **Autores** (nós rosa/coral, extraídos dos campos MARC `100` e `700`)
-   - **Assuntos** (nós roxos, extraídos do campo MARC `650`)
-   - **Editora** (nós verdes, extraídos do campo MARC `260`)
-3. **Fusão de grafos**: se você ativar a opção "Mesclar no grafo da sessão", novas obras adicionadas que compartilhem autores, assuntos ou editoras se conectarão automaticamente aos nós existentes.
-4. **Navegação lateral**: ao clicar ou dar duplo clique em um nó de assunto ou autor, o painel lateral permite buscar novas obras relacionadas diretamente na base real da BU/UFSC e adicioná-las ao grafo com um clique em `＋`.
+1. **Adição por código**: insira um código de acervo (ex: `267587` para *Cálculo*) e clique em **Adicionar** para desenhar o nó da obra no grafo.
+2. **Conexões automáticas**: o sistema lê os campos MARC21 da obra e cria conexões visuais, diferenciadas por **cor e forma**:
+   - 🟦 **Obra** — quadrado azul (ou a capa, quando disponível) — MARC `245`
+   - 🟨 **Assunto** — círculo amarelo (os *hubs* de conexão) — MARC `650`
+   - ⬜ **Autor** — quadrado contornado coral — MARC `100` e `700`
+   - ⚪ **Editora** — círculo neutro — MARC `260`
+
+   Uma **legenda** fixa no canto do grafo resume essa codificação.
+3. **Fusão de grafos**: com a opção "Mesclar no grafo da sessão" ativa, novas obras que compartilhem autores, assuntos ou editoras se conectam automaticamente aos nós já existentes, revelando a teia de relações do acervo.
+4. **Busca lateral na BU**: ao clicar (ou dar duplo clique) em um nó de assunto ou autor, o painel lateral permite buscar novas obras relacionadas diretamente na base real da BU/UFSC e adicioná-las ao grafo com um clique em `＋` (ou deixar o botão "Escolha para mim" sortear uma).
+5. **Remoção de acervo**: uma obra pode ser removida pelo botão **Remover do grafo** no painel, ou por **clique‑direito** no nó. Ao remover, autores/assuntos/editoras que ficarem sem conexão são limpos automaticamente; conectores ligados a outras obras permanecem.
+6. **Link direto**: cada obra tem uma URL própria no formato `/acervo/:id` (ex: `http://localhost:3000/acervo/267587`), compartilhável e com suporte aos botões Voltar/Avançar do navegador.
+
+---
+
+## 🎨 Identidade visual e temas
+
+A interface segue o **Manual de Identidade Visual da BU/UFSC** (jul/2020), com a paleta institucional oficial — **Azul** `#007ac3` (Pantone 2945 C) e **Amarelo** `#ffd400` (Pantone 116 C). Os nós usam **forma além de cor** para distinguir os tipos, o que também mantém o grafo legível em escala de cinza e para pessoas daltônicas.
+
+Há **tema claro e escuro**, alternável pelo botão ☾/☀ na barra de ferramentas. A escolha é lembrada entre sessões e, na primeira visita, respeita a preferência do sistema operacional (`prefers-color-scheme`).
+
+| Tema escuro | Tema claro |
+| :---: | :---: |
+| ![Tema escuro](docs/hero-dark.png) | ![Tema claro](docs/hero-light.png) |
 
 ---
 
@@ -29,9 +46,9 @@ Um explorador visual e interativo de conexões para o acervo da Biblioteca Unive
 
 ## 🛠️ Tecnologias utilizadas
 
-- **Frontend**: HTML5, CSS3 (com design Dark Glassmorphism moderno e responsivo) e JavaScript (vanilla).
+- **Frontend**: HTML5, CSS3 (design *glassmorphism* responsivo, com sistema de tokens para tema claro/escuro) e JavaScript (vanilla).
 - **Visualização de rede**: [Vis-Network](https://visjs.github.io/vis-network/docs/network/) para renderização dinâmica e física interativa das conexões.
-- **Backend**: Node.js (usando um servidor HTTP simples em `server.js` para servir os arquivos e atuar como proxy para a API da UFSC).
+- **Backend**: Node.js — um servidor HTTP simples (`server.js`) que serve os arquivos estáticos e atua como *proxy* para a API do Pergamum UFSC (endpoints `/api/acervo/:id` e `/api/pesquisa`). Um equivalente em Python (`server.py`) também está disponível.
 
 ---
 
