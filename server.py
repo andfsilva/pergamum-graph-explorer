@@ -125,7 +125,7 @@ class ProxyHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         # Static file serving
         # Strip query parameters first
         path = self.path.split('?')[0]
-        if path == '/':
+        if path == '/' or re.match(r'^/acervo(?:/\d+)?/?$', path):
             path = '/index.html'
         
         # Build local filepath

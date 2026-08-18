@@ -78,6 +78,59 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // Proxy endpoint for Pergamum search
+    if (pathname === '/api/pesquisa' && req.method === 'GET') {
+        const termo = requestUrl.searchParams.get('termo') || '';
+        const indice = requestUrl.searchParams.get('indice') || '';
+        const coluna = requestUrl.searchParams.get('coluna') || 'INDICE_2';
+
+        const targetUrl = `https://pergamum.ufsc.br/api/v2/consulta/pesquisa_geral/pergamum_graph?termo_pesquisa=${encodeURIComponent(termo)}&coluna_um=${encodeURIComponent(coluna)}&indice=${encodeURIComponent(indice)}&page=1&perPage=20&orderBy=obra&direction=C`;
+
+        console.log(`Proxying search request for '${termo}' (ID ${indice}, Coluna ${coluna}) to: ${targetUrl}`);
+
+        const options = {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json'
+            },
+            rejectUnauthorized: false
+        };
+
+        https.get(targetUrl, options, (apiRes) => {
+            let data = '';
+
+            apiRes.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            apiRes.on('end', () => {
+                res.writeHead(apiRes.statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(data);
+            });
+
+        }).on('error', (err) => {
+            console.error(`Error proxying search request: ${err.message}`);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Failed to fetch search from Pergamum API', details: err.message }));
+        });
+        return;
+    }
+
+    if (pathname === '/favicon.ico') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+
+    // Direct /acervo/:id or /acervo route to index.html (SPA routing)
+    if (pathname.match(/^\/acervo(?:\/\d+)?\/?$/)) {
+        const filePath = path.join(PUBLIC_DIR, 'index.html');
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        const stream = fs.createReadStream(filePath);
+        stream.pipe(res);
+        return;
+    }
+
     // Static file serving
     // Default to index.html if path is /
     const filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
