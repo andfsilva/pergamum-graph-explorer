@@ -5,29 +5,74 @@ const edges = new vis.DataSet();
 let sessionRecords = {}; // Armazena os registros brutos indexados por ID do acervo
 let currentSearchResults = []; // Armazena a última lista de resultados de busca na BU UFSC
 
-// Configuração de cores para os nós
-const COLORS = {
-    book: {
-        border: '#0ea5e9',
-        background: '#0284c7',
-        highlight: { border: '#38bdf8', background: '#0ea5e9' }
+// Paletas de nó por tema — Paleta oficial BU/UFSC
+// (Manual de Identidade Visual, jul/2020: Azul Pantone 2945 C / Amarelo Pantone 116 C)
+// Nós de autor/editora usam preenchimento adaptável ao fundo (escuro vs. claro).
+const NODE_PALETTES = {
+    dark: {
+        book:      { border: '#007ac3', background: '#007ac3', highlight: { border: '#ffd400', background: '#0a6aad' } },
+        author:    { border: '#f0967a', background: '#1b2637', highlight: { border: '#ffd400', background: '#26364a' } },
+        subject:   { border: '#e0bd00', background: '#ffd400', highlight: { border: '#ffffff', background: '#ffdf33' } },
+        publisher: { border: '#8aa0bb', background: '#26364a', highlight: { border: '#ffd400', background: '#33465e' } }
     },
-    author: {
-        border: '#f43f5e',
-        background: '#e11d48',
-        highlight: { border: '#fda4af', background: '#f43f5e' }
-    },
-    subject: {
-        border: '#a855f7',
-        background: '#9333ea',
-        highlight: { border: '#c084fc', background: '#a855f7' }
-    },
-    publisher: {
-        border: '#10b981',
-        background: '#059669',
-        highlight: { border: '#34d399', background: '#10b981' }
+    light: {
+        book:      { border: '#007ac3', background: '#007ac3', highlight: { border: '#ffd400', background: '#0369a8' } },
+        author:    { border: '#d97a5c', background: '#ffffff', highlight: { border: '#e0a800', background: '#fff5e6' } },
+        subject:   { border: '#e0bd00', background: '#ffd400', highlight: { border: '#b38f00', background: '#ffdf33' } },
+        publisher: { border: '#7d93ad', background: '#ffffff', highlight: { border: '#e0a800', background: '#eef3f9' } }
     }
 };
+
+// Cor dos rótulos dos nós por tema (texto + contorno/halo)
+const NODE_FONTS = {
+    dark:  { color: '#f8fafc', strokeColor: '#0f172a' },
+    light: { color: '#26364a', strokeColor: '#ffffff' }
+};
+
+// Tema efetivo: escolha explícita (data-theme) ou preferência do sistema (espelha o CSS)
+function currentTheme() {
+    const explicit = document.documentElement.getAttribute('data-theme');
+    if (explicit === 'light' || explicit === 'dark') return explicit;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+}
+
+// Paleta ativa usada na criação de nós. Reaponta ao alternar o tema.
+let COLORS = NODE_PALETTES[currentTheme()];
+
+// Reaplica cores dos nós e fonte dos rótulos ao tema informado
+function applyGraphTheme(theme) {
+    COLORS = NODE_PALETTES[theme];
+    const updates = nodes.get()
+        .filter(n => n.type && NODE_PALETTES[theme][n.type])
+        .map(n => ({ id: n.id, color: NODE_PALETTES[theme][n.type] }));
+    if (updates.length) nodes.update(updates);
+    if (network) {
+        network.setOptions({ nodes: { font: NODE_FONTS[theme] } });
+    }
+}
+
+// Define o tema, persiste a escolha e atualiza grafo + botão
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('pergamum-theme', theme); } catch (e) { /* storage indisponível */ }
+    applyGraphTheme(theme);
+    updateThemeButton(theme);
+}
+
+// Atualiza ícone/estado do botão de alternância de tema
+function updateThemeButton(theme) {
+    const btn = document.getElementById('btn-theme');
+    if (!btn) return;
+    const isLight = theme === 'light';
+    btn.classList.toggle('active', isLight);
+    btn.title = isLight ? 'Mudar para tema escuro' : 'Mudar para tema claro';
+    const sun = btn.querySelector('.icon-sun');
+    const moon = btn.querySelector('.icon-moon');
+    if (sun && moon) {
+        sun.style.display = isLight ? 'block' : 'none';
+        moon.style.display = isLight ? 'none' : 'block';
+    }
+}
 
 // SVG de capa padrão embutido
 const DEFAULT_COVER_SVG = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='170' viewBox='0 0 120 170'><rect width='120' height='170' fill='%231e293b' rx='8'/><rect x='10' y='10' width='100' height='150' fill='none' stroke='%23334155' stroke-width='2' stroke-dasharray='4' rx='4'/><text x='50%' y='45%' dominant-baseline='middle' text-anchor='middle' fill='%2364748b' font-family='sans-serif' font-size='28'>📖</text><text x='50%' y='70%' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='sans-serif' font-size='10' font-weight='bold'>SEM CAPA</text></svg>`;
@@ -41,11 +86,11 @@ function initNetwork() {
         nodes: {
             brokenImage: DEFAULT_COVER_SVG,
             font: {
-                color: '#f8fafc',
+                color: NODE_FONTS[currentTheme()].color,
                 size: 14,
                 face: 'Outfit',
                 strokeWidth: 2,
-                strokeColor: '#0f172a'
+                strokeColor: NODE_FONTS[currentTheme()].strokeColor
             },
             shadow: {
                 enabled: true,
@@ -321,7 +366,7 @@ function addRecordToGraph(acervoId, metadata) {
 
     // Determina a imagem da capa (usando o link direto se houver ou o serviço oficial de capas como fallback)
     let coverUrl = DEFAULT_COVER_SVG;
-    let shape = 'box';
+    let shape = 'square';   // sem capa: quadrado azul com rótulo abaixo (legível em ambos os temas)
     if (metadata.coverUrl) {
         coverUrl = metadata.coverUrl;
         shape = 'circularImage';
@@ -369,8 +414,9 @@ function addRecordToGraph(acervoId, metadata) {
             nodes.add({
                 id: authorNodeId,
                 label: author,
-                shape: 'dot',
-                size: 15,
+                shape: 'square',
+                size: 14,
+                borderWidth: 3,
                 color: COLORS.author,
                 type: 'author',
                 name: author,
@@ -397,7 +443,7 @@ function addRecordToGraph(acervoId, metadata) {
                 id: subjectNodeId,
                 label: subject,
                 shape: 'dot',
-                size: 20, // Assuntos são maiores
+                size: 24, // Assuntos são hubs maiores
                 color: COLORS.subject,
                 type: 'subject',
                 name: subject,
@@ -546,9 +592,10 @@ function showNodeDetails(nodeId) {
         
         document.getElementById('detail-type-title').innerText = 'Dados de conexão';
         
-        // Define o tipo
+        // Define o tipo (rótulo em português; a classe mantém o tipo interno p/ estilo)
+        const TYPE_LABELS = { book: 'Obra', author: 'Autor', subject: 'Assunto', publisher: 'Editora' };
         const badge = document.getElementById('detail-badge-type');
-        badge.innerText = node.type;
+        badge.innerText = TYPE_LABELS[node.type] || node.type;
         badge.className = `detail-badge ${node.type}`;
         
         document.getElementById('detail-name').innerText = node.name;
@@ -725,7 +772,8 @@ async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                     nodes.add({
                         id: bookNodeId,
                         label: breakText(graphLabel, 20),
-                        shape: 'box',
+                        shape: 'square',
+                        size: 28,
                         color: COLORS.book,
                         borderWidth: 3,
                         type: 'book',
@@ -764,8 +812,9 @@ async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                             nodes.add({
                                 id: authorNodeId,
                                 label: authorName,
-                                shape: 'dot',
-                                size: 15,
+                                shape: 'square',
+                                size: 14,
+                                borderWidth: 3,
                                 color: COLORS.author,
                                 type: 'author',
                                 name: authorName,
@@ -796,7 +845,7 @@ async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                                 id: sNodeId,
                                 label: sName,
                                 shape: 'dot',
-                                size: 20,
+                                size: 24,
                                 color: COLORS.subject,
                                 type: 'subject',
                                 name: sName,
@@ -923,6 +972,11 @@ document.getElementById('btn-clear').onclick = () => {
 
 // Botão de Fechar Painel Lateral
 document.getElementById('btn-close-panel').onclick = hideDetailsPanel;
+
+// Botão de Alternância de Tema (claro/escuro)
+document.getElementById('btn-theme').onclick = () => {
+    setTheme(currentTheme() === 'light' ? 'dark' : 'light');
+};
 
 // Botão Mágico - Escolha para mim
 document.getElementById('btn-magic-choose').onclick = async () => {
