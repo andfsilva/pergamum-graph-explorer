@@ -149,6 +149,27 @@ function initNetwork() {
         }
     });
 
+    // Clique-direito: menu de contexto para remover o nó (inclusive a âncora)
+    network.on('oncontext', (params) => {
+        params.event.preventDefault();
+        const nodeId = network.getNodeAt(params.pointer.DOM);
+        const menu = document.getElementById('node-context-menu');
+        if (!nodeId) { menu.classList.add('hidden'); return; }
+        network.selectNodes([nodeId]);
+        menu.style.left = `${params.event.clientX}px`;
+        menu.style.top = `${params.event.clientY}px`;
+        menu.classList.remove('hidden');
+        document.getElementById('ctx-remove').onclick = () => {
+            menu.classList.add('hidden');
+            removeNodeCascade(nodeId);
+        };
+    });
+
+    // Fecha o menu de contexto ao arrastar ou dar zoom no grafo
+    const hideCtxMenu = () => document.getElementById('node-context-menu').classList.add('hidden');
+    network.on('dragStart', hideCtxMenu);
+    network.on('zoom', hideCtxMenu);
+
     // Evento de duplo clique para expandir o nó (buscar conexões)
     network.on('doubleClick', async (params) => {
         if (params.nodes.length > 0) {
@@ -551,7 +572,16 @@ function showNodeDetails(nodeId) {
         genericSec.classList.add('hidden');
         
         document.getElementById('detail-type-title').innerText = 'Dados da obra';
-        
+
+        // Botão de remover: oculto na obra âncora (protegida); removível via clique-direito
+        const removeBtn = document.getElementById('btn-remove-book');
+        if (isAnchorNode(nodeId)) {
+            removeBtn.classList.add('hidden');
+        } else {
+            removeBtn.classList.remove('hidden');
+            removeBtn.onclick = () => removeNodeCascade(nodeId);
+        }
+
         const record = sessionRecords[node.acervoId];
         
         // Se temos apenas dados básicos da obra, faz o fetch completo em segundo plano para enriquecer!
@@ -905,6 +935,50 @@ function hideDetailsPanel() {
     document.getElementById('details-panel').classList.add('hidden');
 }
 
+// Verifica se o nó é a obra que nomeia a URL (/acervo/:id)
+function isAnchorNode(nodeId) {
+    const anchorId = getAcervoIdFromUrl();
+    return !!anchorId && nodeId === `book_${anchorId}`;
+}
+
+// Remove um nó do grafo, limpando conectores (autor/assunto/editora) que ficarem
+// órfãos. Obras vizinhas nunca são removidas. Remover a obra âncora reseta a URL.
+function removeNodeCascade(nodeId) {
+    const node = nodes.get(nodeId);
+    if (!node) return;
+
+    const wasAnchor = isAnchorNode(nodeId);
+
+    // Coleta vizinhos e arestas conectadas antes de remover
+    const connectedEdges = edges.get({ filter: (e) => e.from === nodeId || e.to === nodeId });
+    const neighborIds = new Set();
+    connectedEdges.forEach(e => neighborIds.add(e.from === nodeId ? e.to : e.from));
+
+    edges.remove(connectedEdges.map(e => e.id));
+    nodes.remove(nodeId);
+
+    if (node.type === 'book' && node.acervoId) {
+        delete sessionRecords[node.acervoId];
+    }
+
+    // Remove conectores que ficaram sem nenhuma aresta (não remove obras vizinhas)
+    neighborIds.forEach(nid => {
+        const n = nodes.get(nid);
+        if (!n || n.type === 'book') return;
+        const remaining = edges.get({ filter: (e) => e.from === nid || e.to === nid });
+        if (remaining.length === 0) nodes.remove(nid);
+    });
+
+    // A âncora foi removida: a URL não deve mais apontar para uma obra ausente
+    if (wasAnchor) {
+        window.history.pushState(null, '', '/');
+    }
+
+    hideDetailsPanel();
+    showStatus('Removido do grafo.', false);
+    setTimeout(hideStatus, 1500);
+}
+
 // Controle de mensagens de status
 function showStatus(text, isError = false) {
     const msg = document.getElementById('status-message');
@@ -1001,6 +1075,12 @@ document.getElementById('btn-close-panel').onclick = hideDetailsPanel;
 document.getElementById('btn-theme').onclick = () => {
     setTheme(currentTheme() === 'light' ? 'dark' : 'light');
 };
+
+// Fecha o menu de contexto ao clicar fora dele
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('node-context-menu');
+    if (menu && !menu.contains(e.target)) menu.classList.add('hidden');
+});
 
 // Botão Mágico - Escolha para mim
 document.getElementById('btn-magic-choose').onclick = async () => {

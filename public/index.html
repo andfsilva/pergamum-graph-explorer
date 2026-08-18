@@ -126,6 +126,9 @@
                             <div class="info-label">Ano</div>
                             <div id="detail-year" class="info-value">-</div>
                         </div>
+                        <button type="button" id="btn-remove-book" class="btn btn-danger hidden" style="width: 100%; margin-top: 0.25rem;">
+                            🗑 Remover do grafo
+                        </button>
                     </div>
 
                     <!-- Informações de outros nós (autor, assunto, editora) -->
@@ -163,6 +166,11 @@
                 </div>
             </aside>
         </div>
+    </div>
+
+    <!-- Menu de contexto (clique-direito no nó) -->
+    <div id="node-context-menu" class="context-menu hidden">
+        <button type="button" id="ctx-remove" class="context-menu-item">🗑 Remover do grafo</button>
     </div>
 
     <!-- Script de inicialização da aplicação -->

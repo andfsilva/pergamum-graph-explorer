@@ -288,6 +288,59 @@ body {
     transform: translateY(0);
 }
 
+.btn-danger {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ef4444;
+}
+
+.btn-danger:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.btn-danger:active {
+    transform: translateY(0);
+}
+
+/* Menu de contexto (clique-direito no nó) */
+.context-menu {
+    position: fixed;
+    z-index: 2000;
+    background: rgba(var(--glass-bg), 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 0.3rem;
+    box-shadow: var(--shadow-float);
+    min-width: 180px;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.85rem;
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.context-menu-item:hover {
+    background: rgba(239, 68, 68, 0.14);
+    color: #ef4444;
+}
+
 .bu-add-icon {
     flex: 0 0 auto;
     background: rgba(var(--accent-rgb), 0.15);
