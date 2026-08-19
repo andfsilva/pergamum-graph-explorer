@@ -396,12 +396,36 @@ async function fetchAcervoMetadata(acervoId) {
     }
 }
 
+// Gera uma posição inicial dispersa em torno de uma base. Nós criados na mesma
+// coordenada exata têm distância zero e não se repelem no barnesHut (nascem
+// "grudados"); um leve deslocamento garante que a física os separe.
+function jitteredPos(base, amount) {
+    const b = base || { x: 0, y: 0 };
+    return {
+        x: b.x + (Math.random() - 0.5) * amount,
+        y: b.y + (Math.random() - 0.5) * amount
+    };
+}
+
 // Adiciona um livro e suas conexões ao Grafo
 function addRecordToGraph(acervoId, metadata) {
     const bookNodeId = `book_${acervoId}`;
-    
+
     // Armazena no estado da sessão
     sessionRecords[acervoId] = { id: acervoId, ...metadata };
+
+    // Base para dispersar os nós novos e evitar que nasçam coincidentes.
+    // Obra nova entra num ponto afastado do centro (para não cair em cima do
+    // grafo já existente); se a obra já existe, usamos a posição atual dela.
+    const bookExists = !!nodes.get(bookNodeId);
+    let bookBase;
+    if (bookExists && network) {
+        bookBase = network.getPositions([bookNodeId])[bookNodeId] || { x: 0, y: 0 };
+    } else {
+        const ang = Math.random() * Math.PI * 2;
+        const rad = 250 + Math.random() * 220;
+        bookBase = { x: Math.cos(ang) * rad, y: Math.sin(ang) * rad };
+    }
 
     // Determina a imagem da capa (usando o link direto se houver ou o serviço oficial de capas como fallback)
     let coverUrl = DEFAULT_COVER_SVG;
@@ -436,10 +460,10 @@ function addRecordToGraph(acervoId, metadata) {
         font: { size: 14, bold: true }
     };
 
-    if (nodes.get(bookNodeId)) {
+    if (bookExists) {
         nodes.update(bookNode);
     } else {
-        nodes.add(bookNode);
+        nodes.add({ ...bookNode, x: bookBase.x, y: bookBase.y });
     }
 
     // 2. Processa Autores
@@ -450,6 +474,7 @@ function addRecordToGraph(acervoId, metadata) {
         
         // Adiciona nó do Autor se não existir
         if (!nodes.get(authorNodeId)) {
+            const jp = jitteredPos(bookBase, 180);
             nodes.add({
                 id: authorNodeId,
                 label: author,
@@ -459,7 +484,9 @@ function addRecordToGraph(acervoId, metadata) {
                 color: COLORS.author,
                 type: 'author',
                 name: author,
-                authorityId: authId
+                authorityId: authId,
+                x: jp.x,
+                y: jp.y
             });
         }
 
@@ -478,6 +505,7 @@ function addRecordToGraph(acervoId, metadata) {
         
         // Adiciona nó do assunto se não existir
         if (!nodes.get(subjectNodeId)) {
+            const jp = jitteredPos(bookBase, 180);
             nodes.add({
                 id: subjectNodeId,
                 label: subject,
@@ -486,7 +514,9 @@ function addRecordToGraph(acervoId, metadata) {
                 color: COLORS.subject,
                 type: 'subject',
                 name: subject,
-                authorityId: authId
+                authorityId: authId,
+                x: jp.x,
+                y: jp.y
             });
         }
 
@@ -504,6 +534,7 @@ function addRecordToGraph(acervoId, metadata) {
         
         // Adiciona nó da editora se não existir
         if (!nodes.get(pubNodeId)) {
+            const jp = jitteredPos(bookBase, 180);
             nodes.add({
                 id: pubNodeId,
                 label: pub,
@@ -511,7 +542,9 @@ function addRecordToGraph(acervoId, metadata) {
                 size: 12,
                 color: COLORS.publisher,
                 type: 'publisher',
-                name: pub
+                name: pub,
+                x: jp.x,
+                y: jp.y
             });
         }
 
@@ -806,16 +839,21 @@ async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
         
         if (data && Array.isArray(data) && data.length > 0) {
             let addedCount = 0;
+            // Base de dispersão: posição do assunto de origem (evita nós coincidentes)
+            const subjectBase = (network && network.getPositions([subjectNodeId])[subjectNodeId]) || { x: 0, y: 0 };
             data.forEach(item => {
                 const acervoId = item.cod_acervo;
                 if (!acervoId) return;
-                
+
                 addedCount++;
                 const title = cleanString(item.obra || item.descricao);
                 const bookNodeId = `book_${acervoId}`;
-                
-                // 1. Adiciona nó da obra (inicialmente como box)
-                if (!nodes.get(bookNodeId)) {
+                const bookExisted = !!nodes.get(bookNodeId);
+                const bookPos = (bookExisted && network && network.getPositions([bookNodeId])[bookNodeId])
+                    || jitteredPos(subjectBase, 350);
+
+                // 1. Adiciona nó da obra
+                if (!bookExisted) {
                     // Limita o título no gráfico a 60 caracteres + '...' para evitar rótulos gigantescos
                     const maxGraphTitleLength = 60;
                     let graphLabel = title;
@@ -831,7 +869,9 @@ async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                         borderWidth: 3,
                         type: 'book',
                         acervoId: acervoId,
-                        font: { size: 14, bold: true }
+                        font: { size: 14, bold: true },
+                        x: bookPos.x,
+                        y: bookPos.y
                     });
                 }
                 
@@ -862,6 +902,7 @@ async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                         const authorNodeId = `author_${authorName.toLowerCase().replace(/\s+/g, '_')}`;
                         
                         if (!nodes.get(authorNodeId)) {
+                            const jp = jitteredPos(bookPos, 160);
                             nodes.add({
                                 id: authorNodeId,
                                 label: authorName,
@@ -871,7 +912,9 @@ async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                                 color: COLORS.author,
                                 type: 'author',
                                 name: authorName,
-                                authorityId: authorId
+                                authorityId: authorId,
+                                x: jp.x,
+                                y: jp.y
                             });
                         }
                         
@@ -894,6 +937,7 @@ async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                         const sNodeId = `subject_${sName.toLowerCase().replace(/\s+/g, '_')}`;
                         
                         if (!nodes.get(sNodeId)) {
+                            const jp = jitteredPos(bookPos, 160);
                             nodes.add({
                                 id: sNodeId,
                                 label: sName,
@@ -902,7 +946,9 @@ async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
                                 color: COLORS.subject,
                                 type: 'subject',
                                 name: sName,
-                                authorityId: sId
+                                authorityId: sId,
+                                x: jp.x,
+                                y: jp.y
                             });
                         }
                         
