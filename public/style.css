@@ -699,6 +699,130 @@ body {
 .key-author { border: 2px solid #f0967a; border-radius: 4px; }
 .key-publisher { border: 2px solid #8aa0bb; border-radius: 50%; }
 
+/* Botão de ajuda no canto superior direito da legenda */
+.graph-legend {
+    padding-right: 1.9rem; /* espaço para o botão de ajuda */
+}
+
+.legend-help-container {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.4rem;
+    pointer-events: auto; /* legenda tem pointer-events:none; só o botão recupera */
+}
+
+.legend-help {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--hairline-soft);
+    border: 1px solid var(--hairline);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: help;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.legend-help:hover,
+.legend-help:focus {
+    background: rgba(var(--accent-rgb), 0.2);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.4);
+    outline: none;
+}
+
+.legend-help-tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    right: -6px;
+    width: 340px;
+    max-width: calc(100vw - 3rem);
+    background: var(--toast-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    color: var(--text);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    text-align: left;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35), 0 0 15px rgba(var(--accent-rgb), 0.1);
+    z-index: 9999;
+    pointer-events: none;
+    transform: translateY(4px);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.legend-help-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    right: 12px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: rgba(var(--accent-rgb), 0.3) transparent transparent transparent;
+}
+
+.legend-help-container:hover .legend-help-tooltip,
+.legend-help-container:focus-within .legend-help-tooltip {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.legend-help-tooltip .tooltip-title {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.85rem;
+    margin-bottom: 0.55rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--hairline);
+}
+
+.legend-help-tooltip ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.legend-help-tooltip li {
+    padding-left: 0.9rem;
+    position: relative;
+    color: var(--text);
+}
+
+.legend-help-tooltip li::before {
+    content: "•";
+    position: absolute;
+    left: 0.1rem;
+    top: 0;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.legend-help-tooltip code {
+    background: var(--hairline-soft);
+    padding: 0.05rem 0.3rem;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    color: var(--accent);
+    font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+}
+
 /* Painel de detalhes lateral */
 .details-panel {
     width: 380px;

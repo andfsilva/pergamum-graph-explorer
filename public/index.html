@@ -91,8 +91,24 @@
                     </button>
                 </div>
 
-                <!-- Legenda dos tipos de nó -->
+                <!-- Legenda dos tipos de nó + ajuda de uso -->
                 <div class="graph-legend" aria-label="Legenda dos tipos de nó">
+                    <div class="legend-help-container">
+                        <button type="button" class="legend-help" aria-label="Como usar o grafo">?</button>
+                        <div class="legend-help-tooltip" role="tooltip">
+                            <div class="tooltip-title">Como usar o grafo</div>
+                            <ul>
+                                <li><b>Adicionar obra:</b> digite o código de acervo no topo e clique em <b>Adicionar</b>.</li>
+                                <li><b>Ver detalhes:</b> clique num nó para abrir o painel lateral.</li>
+                                <li><b>Buscar na BU:</b> dê <b>duplo clique</b> num autor ou assunto para listar obras relacionadas — clique em <b>＋</b> para adicioná-las.</li>
+                                <li><b>Remover obra:</b> use o botão no painel ou o <b>clique direito</b> no nó (limpa autores/assuntos/editoras órfãos).</li>
+                                <li><b>Mesclar:</b> com o interruptor no topo ativo, novas obras se conectam automaticamente às existentes por autor, assunto ou editora.</li>
+                                <li><b>Navegação do grafo:</b> arraste para mover, gire a roda do mouse para dar zoom.</li>
+                                <li><b>Link direto:</b> a URL <code>/acervo/:id</code> é compartilhável; a obra da URL fica protegida contra remoção acidental.</li>
+                                <li><b>Toolbar:</b> centralizar, pausar/ativar física, limpar tudo, exportar sessão em JSON e alternar tema claro/escuro.</li>
+                            </ul>
+                        </div>
+                    </div>
                     <div class="legend-row"><span class="legend-key key-book"></span> Obra</div>
                     <div class="legend-row"><span class="legend-key key-subject"></span> Assunto</div>
                     <div class="legend-row"><span class="legend-key key-author"></span> Autor</div>
