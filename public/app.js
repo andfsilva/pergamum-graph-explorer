@@ -1080,7 +1080,15 @@ document.getElementById('search-form').addEventListener('submit', async (e) => {
     const metadata = await fetchAcervoMetadata(acervoId);
     if (metadata) {
         addRecordToGraph(acervoId, metadata);
-        window.history.pushState(null, '', `/acervo/${acervoId}`);
+        // A URL representa o ponto de entrada do grafo (a "âncora"), não a
+        // última obra adicionada. Só atualiza a URL quando não há âncora
+        // válida — ou seja, quando a URL atual não aponta para uma obra que
+        // ainda existe no grafo.
+        const currentAnchorId = getAcervoIdFromUrl();
+        const anchorStillInGraph = currentAnchorId && nodes.get(`book_${currentAnchorId}`);
+        if (!anchorStillInGraph) {
+            window.history.pushState(null, '', `/acervo/${acervoId}`);
+        }
         input.value = '';
     }
 });
