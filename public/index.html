@@ -60,7 +60,7 @@
                 </div>
             </form>
             
-            <div id="status-message" class="status-message hidden">
+            <div id="status-message" class="status-message hidden" role="status" aria-live="polite" aria-atomic="true">
                 <div class="spinner"></div>
                 <span class="status-text">Buscando dados...</span>
             </div>
@@ -73,21 +73,21 @@
                 
                 <!-- Barra de ferramentas flutuante -->
                 <div class="floating-toolbar">
-                    <button type="button" id="btn-fit" class="tool-btn" title="Centralizar grafo">
-                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Centralizar grafo</title><path d="M4 4h4v2H6v2H4V4zm16 0h-4v2h2v2h2V4zM4 20h4v-2H6v-2H4v4zm16 0h-4v-2h2v-2h2v4zM12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                    <button type="button" id="btn-fit" class="tool-btn" aria-label="Centralizar grafo" title="Centralizar grafo">
+                        <svg viewBox="0 0 24 24" class="svg-icon" aria-hidden="true"><path d="M4 4h4v2H6v2H4V4zm16 0h-4v2h2v2h2V4zM4 20h4v-2H6v-2H4v4zm16 0h-4v-2h2v-2h2v4zM12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                     </button>
-                    <button type="button" id="btn-physics" class="tool-btn active" title="Alternar física (movimento)">
-                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Alternar física (movimento)</title><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                    <button type="button" id="btn-physics" class="tool-btn active" aria-label="Alternar física (movimento)" aria-pressed="true" title="Alternar física (movimento)">
+                        <svg viewBox="0 0 24 24" class="svg-icon" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
                     </button>
-                    <button type="button" id="btn-clear" class="tool-btn" title="Limpar tudo">
-                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Limpar tudo</title><path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"/></svg>
+                    <button type="button" id="btn-clear" class="tool-btn" aria-label="Limpar tudo" title="Limpar tudo">
+                        <svg viewBox="0 0 24 24" class="svg-icon" aria-hidden="true"><path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"/></svg>
                     </button>
-                    <button type="button" id="btn-export-json" class="tool-btn" title="Exportar dados (JSON)">
-                        <svg viewBox="0 0 24 24" class="svg-icon"><title>Exportar dados (JSON)</title><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                    <button type="button" id="btn-export-json" class="tool-btn" aria-label="Exportar dados (JSON)" title="Exportar dados (JSON)">
+                        <svg viewBox="0 0 24 24" class="svg-icon" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                     </button>
-                    <button type="button" id="btn-theme" class="tool-btn" title="Mudar para tema claro">
-                        <svg class="svg-icon icon-moon" viewBox="0 0 24 24" style="display:block"><title>Alternar tema</title><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
-                        <svg class="svg-icon icon-sun" viewBox="0 0 24 24" style="display:none"><title>Alternar tema</title><circle cx="12" cy="12" r="5"/><rect x="11" y="1" width="2" height="3" rx="1"/><rect x="11" y="20" width="2" height="3" rx="1"/><rect x="1" y="11" width="3" height="2" rx="1"/><rect x="20" y="11" width="3" height="2" rx="1"/><rect x="3.5" y="3.5" width="2" height="3" rx="1" transform="rotate(-45 4.5 5)"/><rect x="18.5" y="17.5" width="2" height="3" rx="1" transform="rotate(-45 19.5 19)"/><rect x="18.5" y="3.5" width="2" height="3" rx="1" transform="rotate(45 19.5 5)"/><rect x="3.5" y="17.5" width="2" height="3" rx="1" transform="rotate(45 4.5 19)"/></svg>
+                    <button type="button" id="btn-theme" class="tool-btn" aria-label="Alternar tema" aria-pressed="false" title="Mudar para tema claro">
+                        <svg class="svg-icon icon-moon" viewBox="0 0 24 24" style="display:block" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+                        <svg class="svg-icon icon-sun" viewBox="0 0 24 24" style="display:none" aria-hidden="true"><circle cx="12" cy="12" r="5"/><rect x="11" y="1" width="2" height="3" rx="1"/><rect x="11" y="20" width="2" height="3" rx="1"/><rect x="1" y="11" width="3" height="2" rx="1"/><rect x="20" y="11" width="3" height="2" rx="1"/><rect x="3.5" y="3.5" width="2" height="3" rx="1" transform="rotate(-45 4.5 5)"/><rect x="18.5" y="17.5" width="2" height="3" rx="1" transform="rotate(-45 19.5 19)"/><rect x="18.5" y="3.5" width="2" height="3" rx="1" transform="rotate(45 19.5 5)"/><rect x="3.5" y="17.5" width="2" height="3" rx="1" transform="rotate(45 4.5 19)"/></svg>
                     </button>
                 </div>
 
@@ -120,7 +120,7 @@
             <aside id="details-panel" class="details-panel hidden">
                 <div class="panel-header">
                     <h2 id="detail-type-title">Detalhes do nó</h2>
-                    <button type="button" id="btn-close-panel" class="close-btn">&times;</button>
+                    <button type="button" id="btn-close-panel" class="close-btn" aria-label="Fechar painel">&times;</button>
                 </div>
                 <div class="panel-body">
                     <!-- Informações da obra -->
@@ -186,7 +186,7 @@
         <!-- Rodapé institucional -->
         <footer class="app-footer">
             <p class="footer-desc">Ferramenta de exploração visual das conexões do acervo (autores, assuntos e editoras) via API do Pergamum, para a Biblioteca Universitária da UFSC.</p>
-            <p class="footer-org"><a href="https://portal.bu.ufsc.br/" target="_blank" rel="noopener noreferrer" title="Biblioteca Universitária da UFSC">BU</a>, <a href="https://setic.ufsc.br/" target="_blank" rel="noopener noreferrer" title="Superintendência de Governança Eletrônica e Tecnologia da Informação e Comunicação">SeTIC</a>, <a href="https://ufsc.br/" target="_blank" rel="noopener noreferrer" title="Universidade Federal de Santa Catarina">UFSC</a>, 2026</p>
+            <p class="footer-org"><a href="https://portal.bu.ufsc.br/" target="_blank" rel="noopener noreferrer" title="Biblioteca Universitária da UFSC" aria-label="BU (abre em nova aba)">BU</a>, <a href="https://setic.ufsc.br/" target="_blank" rel="noopener noreferrer" title="Superintendência de Governança Eletrônica e Tecnologia da Informação e Comunicação" aria-label="SeTIC (abre em nova aba)">SeTIC</a>, <a href="https://ufsc.br/" target="_blank" rel="noopener noreferrer" title="Universidade Federal de Santa Catarina" aria-label="UFSC (abre em nova aba)">UFSC</a>, 2026</p>
         </footer>
     </div>
 

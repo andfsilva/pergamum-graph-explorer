@@ -29,6 +29,17 @@ const NODE_FONTS = {
     light: { color: '#26364a', strokeColor: '#ffffff' }
 };
 
+// Preferência do sistema por menos movimento (acessibilidade vestibular)
+function prefersReducedMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+// Retorna a config de animação do vis-network, ou `false` (sem animação) quando
+// o usuário prefere menos movimento
+function motionSafeAnimation(opts) {
+    return prefersReducedMotion() ? false : opts;
+}
+
 // Tema efetivo: escolha explícita (data-theme) ou preferência do sistema (espelha o CSS)
 function currentTheme() {
     const explicit = document.documentElement.getAttribute('data-theme');
@@ -65,6 +76,7 @@ function updateThemeButton(theme) {
     if (!btn) return;
     const isLight = theme === 'light';
     btn.classList.toggle('active', isLight);
+    btn.setAttribute('aria-pressed', String(isLight));
     btn.title = isLight ? 'Mudar para tema escuro' : 'Mudar para tema claro';
     const sun = btn.querySelector('.icon-sun');
     const moon = btn.querySelector('.icon-moon');
@@ -81,7 +93,10 @@ const DEFAULT_COVER_SVG = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org
 function initNetwork() {
     const container = document.getElementById('network-canvas');
     const data = { nodes, edges };
-    
+    // Respeita a preferência do sistema por menos movimento: inicia com a
+    // física do grafo desligada (usuário ainda pode ativá-la na toolbar).
+    const reducedMotion = prefersReducedMotion();
+
     const options = {
         nodes: {
             brokenImage: DEFAULT_COVER_SVG,
@@ -113,7 +128,7 @@ function initNetwork() {
             }
         },
         physics: {
-            enabled: true,
+            enabled: !reducedMotion,
             barnesHut: {
                 gravitationalConstant: -3000,
                 centralGravity: 0.3,
@@ -138,7 +153,15 @@ function initNetwork() {
     };
     
     network = new vis.Network(container, data, options);
-    
+
+    if (reducedMotion) {
+        const physicsBtn = document.getElementById('btn-physics');
+        if (physicsBtn) {
+            physicsBtn.classList.remove('active');
+            physicsBtn.setAttribute('aria-pressed', 'false');
+        }
+    }
+
     // Evento de clique em um nó
     network.on('click', (params) => {
         if (params.nodes.length > 0) {
@@ -559,10 +582,10 @@ function addRecordToGraph(acervoId, metadata) {
     setTimeout(() => {
         network.focus(bookNodeId, {
             scale: 0.9,
-            animation: {
+            animation: motionSafeAnimation({
                 duration: 1000,
                 easingFunction: 'easeInOutQuad'
-            }
+            })
         });
         showNodeDetails(bookNodeId);
     }, 200);
@@ -654,7 +677,7 @@ function showNodeDetails(nodeId) {
             document.getElementById('detail-title').innerText = record.title;
             const acervoElem = document.getElementById('detail-acervo-id');
             if (record.id) {
-                acervoElem.innerHTML = `<a href="https://pergamum.ufsc.br/acervo/${encodeURIComponent(record.id)}/exemplares" target="_blank" rel="noopener noreferrer" title="Abrir página de exemplares no Pergamum">${record.id} <svg style="width:12px;height:12px;vertical-align:middle;margin-left:2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></a>`;
+                acervoElem.innerHTML = `<a href="https://pergamum.ufsc.br/acervo/${encodeURIComponent(record.id)}/exemplares" target="_blank" rel="noopener noreferrer" title="Abrir página de exemplares no Pergamum" aria-label="Abrir página de exemplares no Pergamum (abre em nova aba)">${record.id} <svg style="width:12px;height:12px;vertical-align:middle;margin-left:2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></a>`;
             } else {
                 acervoElem.innerText = '-';
             }
@@ -731,7 +754,7 @@ function showNodeDetails(nodeId) {
                 const rawRecord = sessionRecords[targetNode.acervoId];
                 li.innerText = rawRecord ? rawRecord.title : targetNode.label.replace('\n', ' ');
                 li.onclick = () => {
-                    network.focus(targetId, { scale: 1.0, animation: { duration: 500 } });
+                    network.focus(targetId, { scale: 1.0, animation: motionSafeAnimation({ duration: 500 }) });
                     network.selectNodes([targetId]);
                     showNodeDetails(targetId);
                 };
@@ -796,7 +819,7 @@ async function searchConnectionOnBU(name, authorityId, type) {
                         const bookId = `book_${acervoId}`;
                         if (nodes.get(bookId)) {
                             // Já está no grafo, apenas foca
-                            network.focus(bookId, { scale: 1.0, animation: { duration: 500 } });
+                            network.focus(bookId, { scale: 1.0, animation: motionSafeAnimation({ duration: 500 }) });
                             network.selectNodes([bookId]);
                             showNodeDetails(bookId);
                         } else {
@@ -1070,7 +1093,7 @@ document.getElementById('search-form').addEventListener('submit', async (e) => {
     if (nodes.get(`book_${acervoId}`)) {
         showStatus('Este livro já está no grafo!', false);
         setTimeout(hideStatus, 2000);
-        network.focus(`book_${acervoId}`, { scale: 1.0, animation: { duration: 500 } });
+        network.focus(`book_${acervoId}`, { scale: 1.0, animation: motionSafeAnimation({ duration: 500 }) });
         network.selectNodes([`book_${acervoId}`]);
         showNodeDetails(`book_${acervoId}`);
         input.value = '';
@@ -1095,7 +1118,7 @@ document.getElementById('search-form').addEventListener('submit', async (e) => {
 
 // Botão de Centralizar
 document.getElementById('btn-fit').onclick = () => {
-    network.fit({ animation: { duration: 500 } });
+    network.fit({ animation: motionSafeAnimation({ duration: 500 }) });
 };
 
 // Botão de Física
@@ -1106,8 +1129,10 @@ physicsBtn.onclick = () => {
     
     if (!isPhysicsEnabled) {
         physicsBtn.classList.add('active');
+        physicsBtn.setAttribute('aria-pressed', 'true');
     } else {
         physicsBtn.classList.remove('active');
+        physicsBtn.setAttribute('aria-pressed', 'false');
     }
 };
 
@@ -1134,6 +1159,20 @@ document.getElementById('btn-theme').onclick = () => {
 document.addEventListener('click', (e) => {
     const menu = document.getElementById('node-context-menu');
     if (menu && !menu.contains(e.target)) menu.classList.add('hidden');
+});
+
+// Esc fecha o menu de contexto e o painel lateral (acessibilidade via teclado)
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const menu = document.getElementById('node-context-menu');
+    if (menu && !menu.classList.contains('hidden')) {
+        menu.classList.add('hidden');
+        return;
+    }
+    const panel = document.getElementById('details-panel');
+    if (panel && !panel.classList.contains('hidden')) {
+        hideDetailsPanel();
+    }
 });
 
 // Botão Mágico - Escolha para mim
@@ -1173,7 +1212,7 @@ document.getElementById('btn-magic-choose').onclick = async () => {
     }
     
     if (nodes.get(bookId)) {
-        network.focus(bookId, { scale: 1.0, animation: { duration: 500 } });
+        network.focus(bookId, { scale: 1.0, animation: motionSafeAnimation({ duration: 500 }) });
         network.selectNodes([bookId]);
         showNodeDetails(bookId);
     } else {
@@ -1243,7 +1282,7 @@ window.addEventListener('popstate', async () => {
     if (codAcervo) {
         const bookNodeId = `book_${codAcervo}`;
         if (nodes.get(bookNodeId)) {
-            network.focus(bookNodeId, { scale: 1.0, animation: { duration: 500 } });
+            network.focus(bookNodeId, { scale: 1.0, animation: motionSafeAnimation({ duration: 500 }) });
             network.selectNodes([bookNodeId]);
             showNodeDetails(bookNodeId);
         } else {
