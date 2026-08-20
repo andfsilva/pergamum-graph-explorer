@@ -619,8 +619,16 @@ function showNodeDetails(nodeId) {
     const panel = document.getElementById('details-panel');
     const bookSec = document.getElementById('book-details');
     const genericSec = document.getElementById('generic-details');
-    
+
     panel.classList.remove('hidden');
+    panel.setAttribute('aria-hidden', 'false');
+    // Move o foco para o título do painel assim que o conteúdo síncrono
+    // desta função terminar de ser escrito (leitor de tela anuncia o
+    // painel aberto e seu título atualizado)
+    setTimeout(() => {
+        const titleEl = document.getElementById('detail-type-title');
+        if (titleEl) titleEl.focus({ preventScroll: true });
+    }, 0);
 
     if (node.type === 'book') {
         // Exibe seção da obra
@@ -656,8 +664,10 @@ function showNodeDetails(nodeId) {
                         const coverImg = document.getElementById('detail-cover');
                         if (fullMeta.coverUrl) {
                             coverImg.src = fullMeta.coverUrl;
+                            coverImg.alt = `Capa de ${fullMeta.title}`;
                         } else if (fullMeta.isbn) {
                             coverImg.src = `https://capas.bu.ufsc.br/cover?id=${fullMeta.isbn}&provider=gb,ol`;
+                            coverImg.alt = `Capa de ${fullMeta.title}`;
                         }
                     }
                     
@@ -688,10 +698,13 @@ function showNodeDetails(nodeId) {
             const coverImg = document.getElementById('detail-cover');
             if (record.coverUrl) {
                 coverImg.src = record.coverUrl;
+                coverImg.alt = `Capa de ${record.title}`;
             } else if (record.isbn) {
                 coverImg.src = `https://capas.bu.ufsc.br/cover?id=${record.isbn}&provider=gb,ol`;
+                coverImg.alt = `Capa de ${record.title}`;
             } else {
                 coverImg.src = DEFAULT_COVER_SVG;
+                coverImg.alt = `Sem capa disponível para ${record.title}`;
             }
         }
     } else {
@@ -1001,7 +1014,9 @@ async function _expandSubjectInGraph(subjectName, authorityId, subjectNodeId) {
 }
 
 function hideDetailsPanel() {
-    document.getElementById('details-panel').classList.add('hidden');
+    const panel = document.getElementById('details-panel');
+    panel.classList.add('hidden');
+    panel.setAttribute('aria-hidden', 'true');
 }
 
 // Verifica se o nó é a obra que nomeia a URL (/acervo/:id)
@@ -1161,7 +1176,8 @@ document.addEventListener('click', (e) => {
     if (menu && !menu.contains(e.target)) menu.classList.add('hidden');
 });
 
-// Esc fecha o menu de contexto e o painel lateral (acessibilidade via teclado)
+// Esc fecha o menu de contexto, o painel lateral e os tooltips de ajuda
+// abertos via teclado (acessibilidade — WCAG 1.4.13 "dismissible")
 document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     const menu = document.getElementById('node-context-menu');
@@ -1172,6 +1188,11 @@ document.addEventListener('keydown', (e) => {
     const panel = document.getElementById('details-panel');
     if (panel && !panel.classList.contains('hidden')) {
         hideDetailsPanel();
+        return;
+    }
+    const active = document.activeElement;
+    if (active && (active.classList.contains('info-help-icon') || active.classList.contains('legend-help'))) {
+        active.blur();
     }
 });
 
