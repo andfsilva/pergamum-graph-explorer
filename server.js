@@ -18,22 +18,29 @@ const MIME_TYPES = {
     '.ico': 'image/x-icon'
 };
 
+// Cabeçalhos de segurança aplicados a toda resposta
+function setSecurityHeaders(res) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Content-Security-Policy',
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' https://unpkg.com; " +
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+        "font-src 'self' https://fonts.gstatic.com; " +
+        "img-src 'self' data: https:; " +
+        "connect-src 'self' https://capas.bu.ufsc.br; " +
+        "frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+    );
+}
+
 const server = http.createServer((req, res) => {
     const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const pathname = requestUrl.pathname;
 
     console.log(`${req.method} ${pathname}`);
 
-    // CORS headers for convenience
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    if (req.method === 'OPTIONS') {
-        res.writeHead(200);
-        res.end();
-        return;
-    }
+    setSecurityHeaders(res);
 
     // Proxy endpoint for Pergamum API
     // Matches /api/acervo/{id} or /api/acervo/{id}/exemplary-data
@@ -49,16 +56,14 @@ const server = http.createServer((req, res) => {
 
         console.log(`Proxying request for acervo ${acervoId} to: ${targetUrl}`);
 
-        // Set options to bypass self-signed certificate errors if any, and set headers
         const options = {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'application/json'
-            },
-            rejectUnauthorized: false // Bypasses potential SSL/certificate issues
+            }
         };
 
-        https.get(targetUrl, options, (apiRes) => {
+        const apiReq = https.get(targetUrl, options, (apiRes) => {
             let data = '';
 
             apiRes.on('data', (chunk) => {
@@ -69,8 +74,12 @@ const server = http.createServer((req, res) => {
                 res.writeHead(apiRes.statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
                 res.end(data);
             });
-
-        }).on('error', (err) => {
+        });
+        apiReq.setTimeout(10000, () => {
+            apiReq.destroy(new Error('Pergamum API request timed out'));
+        });
+        apiReq.on('error', (err) => {
+            if (res.headersSent) return;
             console.error(`Error proxying request: ${err.message}`);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Failed to fetch from Pergamum API', details: err.message }));
@@ -92,11 +101,10 @@ const server = http.createServer((req, res) => {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'application/json'
-            },
-            rejectUnauthorized: false
+            }
         };
 
-        https.get(targetUrl, options, (apiRes) => {
+        const apiReq = https.get(targetUrl, options, (apiRes) => {
             let data = '';
 
             apiRes.on('data', (chunk) => {
@@ -107,8 +115,12 @@ const server = http.createServer((req, res) => {
                 res.writeHead(apiRes.statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
                 res.end(data);
             });
-
-        }).on('error', (err) => {
+        });
+        apiReq.setTimeout(10000, () => {
+            apiReq.destroy(new Error('Pergamum API search timed out'));
+        });
+        apiReq.on('error', (err) => {
+            if (res.headersSent) return;
             console.error(`Error proxying search request: ${err.message}`);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Failed to fetch search from Pergamum API', details: err.message }));

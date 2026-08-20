@@ -10,17 +10,25 @@ HOST = os.environ.get('HOST', '127.0.0.1')
 PORT = int(os.environ.get('PORT', '3000'))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'public')
 
+CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' https://fonts.gstatic.com; "
+    "img-src 'self' data: https:; "
+    "connect-src 'self' https://capas.bu.ufsc.br; "
+    "frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+)
+
+
 class ProxyHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def end_headers(self):
-        # Add CORS headers for simplicity
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        # Cabeçalhos de segurança aplicados a toda resposta
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
+        self.send_header('Content-Security-Policy', CSP)
         super().end_headers()
-
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.end_headers()
 
     def do_GET(self):
         # Match /api/acervo/{id} or /api/acervo/{id}/exemplary-data
@@ -44,14 +52,8 @@ class ProxyHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 }
             )
             
-            # Disable SSL certificate verification (in case of certificate errors on internal networks)
-            import ssl
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            
             try:
-                with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
+                with urllib.request.urlopen(req, timeout=10) as response:
                     data = response.read()
                     self.send_response(response.status)
                     self.send_header('Content-Type', 'application/json; charset=utf-8')
@@ -95,13 +97,8 @@ class ProxyHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 }
             )
             
-            import ssl
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            
             try:
-                with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
+                with urllib.request.urlopen(req, timeout=10) as response:
                     data = response.read()
                     self.send_response(response.status)
                     self.send_header('Content-Type', 'application/json; charset=utf-8')
